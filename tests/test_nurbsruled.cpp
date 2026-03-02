@@ -137,8 +137,8 @@ void test_nurbsruled_ribbon_deg3()
 		points2.push_back(Point3((double)rand() / RAND_MAX + i * 2, (double)rand() / RAND_MAX + 2, 10.*(double)rand() / RAND_MAX));
 
 	int degree = 3;
-	NurbsFactory::create_curve_from_points(points1, degree, n1);
-	NurbsFactory::create_curve_from_points(points2, degree, n2);
+	NurbsUtil::create_curve_from_points(points1, degree, n1);
+	NurbsUtil::create_curve_from_points(points2, degree, n2);
 
 	NurbsSurface n;
 

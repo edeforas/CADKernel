@@ -14,7 +14,7 @@ struct Tetrahedron
 int main()
 {
 	//create Shierpinsky Fractal tetrahedron by subdivision
-	cout << "Test Start." << endl;
+	cout << "Fractal computation Start." << endl;
 	
 	//create first plain tetrahedron
 	Tetrahedron t;
@@ -79,11 +79,7 @@ int main()
 		m.add_triangle(iV2, iV4, iV3);
 	}
 
-	if (!STLFile::save("fractal_tetrahedron.stl", m))
-	{
-		cout << "Unable to write fractal_tetrahedron.stl, check path and access rights." << endl;
-		return -1;
-	}
+	STLFile::save("sample_fractal_tetrahedron.stl", m);
 
 	cout << "Test Finished.";
 	return 0;

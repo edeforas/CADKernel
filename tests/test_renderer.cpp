@@ -4,6 +4,9 @@
 #include "MeshFactory.h"
 #include "NurbsCurve.h"
 #include "NurbsFactory.h"
+#include "NurbsUtil.h"
+#include "NurbsSolid.h"
+#include "NurbsSurface.h"
 #include "Transform.h"
 
 #include <iostream>
@@ -25,6 +28,15 @@ int main()
 	mSphere.set_color(DARK_GREEN);
 	mSphere.apply_transform(Translation(Point3(10, 0., 0.)));
 
+	NurbsSurface nSurface;
+	NurbsFactory::create_torus(8., 2., nSurface);
+	for (auto& p : nSurface.points())
+		p += Point3(-12., 0., 0.);
+
+	NurbsSolid nSolid;
+	NurbsFactory::create_box(10., 10., 10., nSolid);
+	nSolid.apply_transform(Translation(Point3(0., -12., 0.)));
+
 	Image img(iWidth, iHeight, 4);
 	Renderer eng((int*)img.data(),iWidth, iHeight);
 	eng.set_background(DARK_GREY);
@@ -44,7 +56,7 @@ int main()
 		points.push_back(p*30.);
 	}
 
-	NurbsFactory::create_curve_from_points(points, degree,n);
+	NurbsUtil::create_curve_from_points(points, degree,n);
 	n.to_polyline(nurbPL);
 
 	for (int i = 0; i < 360; i += 40)
@@ -55,6 +67,8 @@ int main()
 		
 		eng.draw_mesh(mTorus,false);
 		eng.draw_mesh(mSphere,true);
+		eng.draw_surface(nSurface, 5, false, BLUE);
+		eng.draw_solid(nSolid, 4, true, GREY);
 		eng.draw_polyline(nurbPL, WHITE);
 		eng.draw_polyline(points, GREEN);
 

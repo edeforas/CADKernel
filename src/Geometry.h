@@ -34,6 +34,7 @@ public:
 	double norm_square() const;
 	void normalize();
 	Point3 normalized() const;
+	void sanitize();
 
     double _x, _y, _z;
 };
@@ -119,7 +120,7 @@ public:
 	void get(double& a, double& b, double& c, double& d) const;
 	
 	bool intersect_with(const Segment3& s, Point3& pIntersection) const;
-	bool intersect_with(const Plane3 &p, Line3& pIntersection) const;
+	bool intersect_with(const Plane3 &p, const Line3& pIntersection) const;
 
 	void project_point(const Point3& p, Point3& projected) const;
 

@@ -13,10 +13,14 @@ void Transform::apply_all(vector<Point3>& vp) const
 		apply(p);
 }
 ///////////////////////////////////////////////////////////////////////////
-Translation::Translation(const Point3& translation)
-{
-	_translation = translation;
-}
+Translation::Translation(const Point3& translation):
+	_translation(translation)
+{ }
+
+Translation::Translation(double tx, double ty, double tz):
+	_translation(Point3(tx, ty, tz))
+{ }
+
 void Translation::apply(Point3& p) const
 {
 	p += _translation;

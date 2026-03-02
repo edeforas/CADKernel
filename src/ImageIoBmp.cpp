@@ -101,7 +101,7 @@ bool ImageIoBmp::read(const string& sFilename, Image* pImage)
 	{   //assume grey level, no color LUT for now
 		int iLineWidth = iWidth + (iWidth % 4);
 		int iPack = iLineWidth - iWidth;
-		unsigned char cTmp[3] = { 0 }, * pLineY;
+		unsigned char cTmp[3] = { 0 };
 
 		//read lut, but do not use:
 		for (int i = 0; i < 256 * 4; i++)
@@ -109,7 +109,7 @@ bool ImageIoBmp::read(const string& sFilename, Image* pImage)
 
 		for (int iY = iHeight - 1; iY >= 0; iY--)
 		{
-			pLineY = pImage->pixel(0, iY, 0);
+			unsigned char* pLineY = pImage->pixel(0, iY, 0);
 			fbmp.read((char*)pLineY, iWidth);
 			fbmp.read((char*)cTmp, iPack);
 		}

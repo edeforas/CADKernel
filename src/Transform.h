@@ -18,6 +18,7 @@ class Translation : public Transform
 {
 public:
 	Translation(const Point3& translation);
+	Translation(double tx, double ty, double tz);
 
 	virtual void apply(Point3& p) const override;
 

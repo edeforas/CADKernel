@@ -5,11 +5,9 @@
 #include "NurbsSolid.h"
 #include "NurbsRuled.h"
 #include "NurbsRevolve.h"
+#include "NurbsUtil.h"
 
-#include <cassert>
-#include <algorithm>
 #include <cmath>
-using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////
 void NurbsFactory::create_circle(double dRadius, NurbsCurve& nc)
@@ -18,9 +16,9 @@ void NurbsFactory::create_circle(double dRadius, NurbsCurve& nc)
 
 	NurbsCurve n;
 	int degree = 2;
-	vector<double> knots = { 0., 0., 0., 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1., 1., 1. };
-	vector<double> weights = { 1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1. };
-	vector<Point3> points = {
+	std::vector<double> knots = { 0., 0., 0., 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1., 1., 1. };
+	std::vector<double> weights = { 1.,1. / std::sqrt(2.),1.,1. / std::sqrt(2.),1.,1. / std::sqrt(2.),1.,1. / std::sqrt(2.),1. };
+	std::vector<Point3> points = {
 		Point3(1.,0.,0.) * dRadius,Point3(1.,1.,0.) * dRadius,Point3(0.,1.,0.) * dRadius,
 		Point3(-1.,1.,0.) * dRadius,Point3(-1.,0.,0.) * dRadius,Point3(-1.,-1.,0.) * dRadius,
 		Point3(0.,-1.,0.) * dRadius,Point3(1.,-1.,0.) * dRadius,Point3(1.,0.,0.) * dRadius
@@ -38,7 +36,7 @@ void NurbsFactory::create_disk(double dRadius, NurbsSurface& ns)
 
 	//create profile curve
 	NurbsCurve nc;
-	vector<Point3> points = {
+	std::vector<Point3> points = {
 		Point3(0., 0.,0.),
 		Point3(dRadius,0.,0.),
 	};
@@ -52,14 +50,56 @@ void NurbsFactory::create_disk(double dRadius, NurbsSurface& ns)
 	nr.revolve(nc, ns);
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsFactory::create_curve_from_points(const vector<Point3>& points, int degree,NurbsCurve& nc) //no rational, uniform
+void NurbsFactory::create_filled_surface(const NurbsCurve& nc, NurbsSurface& ns)
 {
-	nc.clear();
-	nc.set_degree(degree);
-	nc.set_points(points);
+	ns.clear();
 
-	nc.set_uniform();
-	nc.set_equals_weights();
+	if (nc.nb_points() < 2)
+		return;
+
+	if (nc.weights().size() != nc.nb_points())
+		return;
+
+	const std::vector<Point3>& curvePoints = nc.points();
+	const std::vector<double>& curveWeights = nc.weights();
+
+	int nbCenterSamples = nc.nb_points();
+	if (nc.is_closed() && nc.nb_points() > 2)
+		nbCenterSamples = nc.nb_points() - 1;
+
+	Point3 center;
+	double totalWeight = 0.;
+	for (int i = 0; i < nbCenterSamples; i++)
+	{
+		double w = curveWeights[i];
+		if (std::fabs(w) < 1.e-12)
+			continue;
+
+		center += curvePoints[i] * w;
+		totalWeight += w;
+	}
+
+	if (std::fabs(totalWeight) < 1.e-12)
+		center = curvePoints[0];
+	else
+		center /= totalWeight;
+
+	std::vector<Point3> surfacePoints = curvePoints;
+	std::vector<double> surfaceWeights = curveWeights;
+
+	for (int i = 0; i < nc.nb_points(); i++)
+	{
+		surfacePoints.push_back(center);
+		surfaceWeights.push_back(curveWeights[i]);
+	}
+
+	ns.set_degree(nc.degree(), 1);
+	ns.set_knots_u(nc.knots());
+	ns.set_knots_v({ 0., 0., 1., 1. });
+	ns.set_points(surfacePoints, nc.nb_points(), 2);
+	ns.set_weights(surfaceWeights);
+	ns.set_closed_u(nc.is_closed());
+	ns.set_closed_v(false);
 }
 ///////////////////////////////////////////////////////////////////////////
 void NurbsFactory::create_sphere(double dRadius,NurbsSurface& ns)
@@ -68,7 +108,7 @@ void NurbsFactory::create_sphere(double dRadius,NurbsSurface& ns)
 
 	//create profile curve: half circle
 	NurbsCurve nc;
-	vector<Point3> points = {
+	std::vector<Point3> points = {
 		Point3(0., 0.,-1.)* dRadius,
 		Point3(0.,1.,-1.)* dRadius,
 		Point3(0., 1.,0.)* dRadius,
@@ -76,8 +116,8 @@ void NurbsFactory::create_sphere(double dRadius,NurbsSurface& ns)
 		Point3(0.,0.,1.)* dRadius
 	};
 
-	vector<double> weights = { 1. , 1. / sqrt(2.),1., 1. / sqrt(2.), 1. };
-	vector<double> knots = { 0., 0., 0., 0.5, 0.5, 1., 1., 1. };
+	std::vector<double> weights = { 1. , 1. / std::sqrt(2.),1., 1. / std::sqrt(2.), 1. };
+	std::vector<double> knots = { 0., 0., 0., 0.5, 0.5, 1., 1., 1. };
 	nc.set_degree(2);
 	nc.set_points(points);
 	nc.set_weights(weights);
@@ -137,11 +177,11 @@ void NurbsFactory::create_cylinder(double dRadius, double dHeight, NurbsSolid& n
 
 	//create profile curve
 	NurbsCurve nc;
-	vector<Point3> points = {
+	std::vector<Point3> points = {
 		Point3(dRadius,0.,-dHeight / 2.),Point3(dRadius,0.,dHeight / 2.)
 	};
 
-	create_curve_from_points(points, 1, nc);
+	NurbsUtil::create_curve_from_points(points, 1, nc);
 	NurbsRevolve nr;
 	nr.revolve(nc, s2);
 
@@ -186,8 +226,8 @@ void NurbsFactory::create_quad(const Point3& p1, const Point3& p2, const Point3&
 {
 	NurbsCurve n1,n2;
 	
-	create_curve_from_points({ p1,p2 }, 1, n1);
-	create_curve_from_points({ p4,p3 }, 1, n2);
+	NurbsUtil::create_curve_from_points({ p1,p2 }, 1, n1);
+	NurbsUtil::create_curve_from_points({ p4,p3 }, 1, n2);
 	NurbsRuled nr;
 	nr.create_ruled(n1, n2, ns);
 }

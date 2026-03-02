@@ -7,7 +7,8 @@ Solid::Solid()
 }
 
 Solid::Solid(const Solid& f) :
-	_mesh(f._mesh)
+	_mesh(f._mesh),
+	_faces(f._faces)
 {
 }
 
@@ -22,7 +23,12 @@ Solid::~Solid()
 
 Solid& Solid::operator=(const Solid& other)
 {
-	return *new Solid(*this);
+	if (this == &other)
+		return *this;
+
+	_mesh = other._mesh;
+	_faces = other._faces;
+	return *this;
 }
 
 

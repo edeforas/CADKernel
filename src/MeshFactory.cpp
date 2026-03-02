@@ -346,6 +346,90 @@ namespace MeshFactory
 			}
 		}
 	}
+
+	void create_revolve(const std::vector<Point3>& profile, int iNbSegments, Mesh& m)
+	{
+		create_revolve(profile, iNbSegments, false, m);
+	}
+
+	void create_revolve(const std::vector<Point3>& profile, int iNbSegments, bool bCapEnds, Mesh& m)
+	{
+		m.clear();
+
+		if ((int)profile.size() < 2)
+			return;
+
+		if (iNbSegments < 3)
+			iNbSegments = 3;
+
+		double PI = 3.14159265358979323846264338;
+		const int iNbProfilePoints = (int)profile.size();
+
+		for (int segment = 0; segment < iNbSegments; ++segment)
+		{
+			double angle = (double)segment / iNbSegments * 2. * PI;
+			double c = std::cos(angle);
+			double s = std::sin(angle);
+
+			for (int i = 0; i < iNbProfilePoints; ++i)
+			{
+				const Point3& p = profile[i];
+				m.add_vertex(
+					p.x() * c - p.y() * s,
+					p.x() * s + p.y() * c,
+					p.z());
+			}
+		}
+
+		for (int segment = 0; segment < iNbSegments; ++segment)
+		{
+			const int segmentNext = (segment + 1) % iNbSegments;
+
+			for (int i = 0; i < iNbProfilePoints - 1; ++i)
+			{
+				m.add_quad(
+					segmentNext * iNbProfilePoints + i,
+					segmentNext * iNbProfilePoints + i + 1,
+					segment * iNbProfilePoints + i + 1,
+					segment * iNbProfilePoints + i);
+			}
+		}
+
+		if (!bCapEnds)
+			return;
+
+		const int iFirst = 0;
+		const int iLast = iNbProfilePoints - 1;
+		const Point3& pFirst = profile[iFirst];
+		const Point3& pLast = profile[iLast];
+		const double eps = 1.e-12;
+
+		const double rFirst = std::sqrt(pFirst.x() * pFirst.x() + pFirst.y() * pFirst.y());
+		if (rFirst > eps)
+		{
+			const int iCenterFirst = m.add_vertex(0., 0., pFirst.z());
+			for (int segment = 0; segment < iNbSegments; ++segment)
+			{
+				const int segmentNext = (segment + 1) % iNbSegments;
+				const int iV1 = segment * iNbProfilePoints + iFirst;
+				const int iV2 = segmentNext * iNbProfilePoints + iFirst;
+				m.add_triangle(iCenterFirst, iV2, iV1);
+			}
+		}
+
+		const double rLast = std::sqrt(pLast.x() * pLast.x() + pLast.y() * pLast.y());
+		if (rLast > eps)
+		{
+			const int iCenterLast = m.add_vertex(0., 0., pLast.z());
+			for (int segment = 0; segment < iNbSegments; ++segment)
+			{
+				const int segmentNext = (segment + 1) % iNbSegments;
+				const int iV1 = segment * iNbProfilePoints + iLast;
+				const int iV2 = segmentNext * iNbProfilePoints + iLast;
+				m.add_triangle(iCenterLast, iV1, iV2);
+			}
+		}
+	}
 }
 
 

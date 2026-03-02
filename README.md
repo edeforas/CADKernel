@@ -3,13 +3,13 @@ CAD server in C++:
 - Renderer:
   - soft rendering
   - ambient light
-  - render curves, meshes, nurbs (wip)
+  - render curves, meshes, nurbs
   - image factory
 
 - Mesh:
-  - several mesh kernels (wip)
   - factory
   - cleanup
+  - boolean
 
 - Nurbs:
   - surfaces
@@ -20,14 +20,19 @@ CAD server in C++:
   - extrude
   - ruled
   - revolve
+  - intersections
+  - sweep
   - insert knots
   - elevate degree
-  - conv to meshes
+  - conv to/from meshes
+  - fit curves/ fit surfaces
+  - boolean
+  - chamfer(wip)
 
-- Files:
+- Files format (read/write):
   - bmp
   - obj
   - stl
-  - step format ( wip)
+  - step format
 
 - Many tests

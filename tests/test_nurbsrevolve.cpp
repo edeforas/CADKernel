@@ -14,6 +14,9 @@
 #include <cmath>
 using namespace std;
 
+#ifndef M_PI
+#define M_PI (3.1415926535897932384)
+#endif
 void test_near(double a, double ref, double epsilon=1.e-10,const string& sMessage="")
 {
 	if ((a > ref + epsilon) || (a < ref - epsilon))
@@ -30,7 +33,7 @@ void test_nurbsrevolve_flatdisk()
 	//create profile curve
 	vector<Point3> points = {Point3(0.,0.,0.),Point3(1.,0.,0.) };
 	NurbsCurve nc;
-	NurbsFactory::create_curve_from_points(points, 1, nc);
+	NurbsUtil::create_curve_from_points(points, 1, nc);
 
 	// revolve
 	NurbsRevolve nr;
@@ -56,7 +59,7 @@ void test_nurbsrevolve_cylinder()
 	//create profile curve
 	vector<Point3> points = { Point3(0.,0.,0.),Point3(1.,0.,0.),Point3(1.,0.,3.),Point3(0.,0.,3.) };
 	NurbsCurve nc;
-	NurbsFactory::create_curve_from_points(points, 1, nc);
+	NurbsUtil::create_curve_from_points(points, 1, nc);
 
 	// revolve
 	NurbsRevolve nr;
@@ -86,7 +89,7 @@ void test_nurbsrevolve_vase()
 		Point3(2.,2.,3.),Point3(3.,0.,4.),Point3(0.,2.,5.)
 	};
 	NurbsCurve nc;
-	NurbsFactory::create_curve_from_points(points, 3, nc);
+	NurbsUtil::create_curve_from_points(points, 3, nc);
 
 	// revolve
 	NurbsRevolve nr;
@@ -194,6 +197,63 @@ void test_nurbsrevolve_create_torus()
 	sw.write(ns);
 }
 ///////////////////////////////////////////////////////////////////////////
+void test_nurbsrevolve_any_angle_step_export()
+{
+	cout << endl << "test_nurbsrevolve_any_angle_step_export" << endl;
+
+	vector<Point3> points = { Point3(1.,0.,-1.), Point3(1.,0.,1.) };
+	NurbsCurve nc;
+	NurbsUtil::create_curve_from_points(points, 1, nc);
+
+	NurbsRevolve nr;
+	const vector<double> angles = {
+		M_PI / 6.,
+		M_PI,
+		1.75 * M_PI,
+		2. * M_PI
+	};
+
+	for (int i = 0; i < (int)angles.size(); ++i)
+	{
+		NurbsSurface ns;
+		bool ok = nr.revolve(nc, angles[i], ns);
+		assert(ok);
+
+		test_near(std::fabs(ns.knots_u().front()), 0., 1.e-12, "u knots should start at 0");
+		test_near(std::fabs(ns.knots_u().back() - 1.), 0., 1.e-12, "u knots should end at 1");
+
+		if (angles[i] >= 2. * M_PI - 1.e-9)
+			assert(ns.is_closed_u());
+		else
+			assert(!ns.is_closed_u());
+
+		StepWriter sw;
+		string filename = string("test_nurbsrevolve_angle_") + to_string(i) + string(".step");
+		sw.open(filename);
+		assert(sw.is_open());
+		sw.write(ns);
+		sw.close();
+
+		OBJWriter o;
+		Mesh m;
+		NurbsUtil::to_mesh(ns, m);
+		o.open(filename + ".obj");
+		o.write(m);
+
+	}
+
+	NurbsSurface nsDeg;
+	bool okDeg = nr.revolve_deg(nc, 270., nsDeg);
+	assert(okDeg);
+	assert(!nsDeg.is_closed_u());
+
+	StepWriter swDeg;
+	swDeg.open("test_nurbsrevolve_angle_deg_270.step");
+	assert(swDeg.is_open());
+	swDeg.write(nsDeg);
+	swDeg.close();
+}
+///////////////////////////////////////////////////////////////////////////
 int main()
 {
 	test_nurbsrevolve_cylinder();
@@ -203,6 +263,7 @@ int main()
 	test_nurbsrevolve_sphere();
 	test_nurbsrevolve_create_sphere();
 	test_nurbsrevolve_create_torus();
+	test_nurbsrevolve_any_angle_step_export();
 
 	cout << "Test Finished.";
 	return 0;

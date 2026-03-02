@@ -109,6 +109,9 @@ void Mesh::unlink_triangle(int iTriangle)
 
 Mesh& Mesh::operator=(const Mesh& m)
 {
+	if (this == &m)
+		return *this;
+	
 	_pKernel = new MeshKernelLinkedTriangles;
 	clear();
 	add_mesh(m);
@@ -351,100 +354,96 @@ void Mesh::apply_transform(const Transform& t)
 //////////////////////////////////////////////////////////////////////////////////
 void Mesh::split_triangle(int iTriangle, const Triangle3 & tSplitter)
 {
-	Triangle3 tA; get_triangle(iTriangle, tA);
-	Point3 pIntersection;
+	Triangle3 tA;
+	get_triangle(iTriangle, tA);
 
-	//quick intersection test, both must cut each others
-	Plane3 planeSplitter(tSplitter);
-	if (tA.cutted_by(planeSplitter) == false)
-		return ;
+	if (!tA.intersect_with(tSplitter))
+		return;
 
-	Plane3 planeA(tA);
-	if (tSplitter.cutted_by(planeA) == false)
-		return ;
-
-	//compute triangle - segment intersections
+	const double EPS = 1.e-8;
 	vector<Point3> vIntersections;
-	if (planeA.intersect_with(Segment3(tSplitter.p1(), tSplitter.p2()), pIntersection))
-		vIntersections.push_back(pIntersection);
 
-	if (planeA.intersect_with(Segment3(tSplitter.p1(), tSplitter.p3()), pIntersection))
-		vIntersections.push_back(pIntersection);
-
-	if(vIntersections.size()<2) // two triangle cannot intersect more than 2 times, quick abort
-		if (planeA.intersect_with(Segment3(tSplitter.p2(), tSplitter.p3()), pIntersection))
-			vIntersections.push_back(pIntersection);
-	
-	assert(vIntersections.size() <= 2);
-	if (vIntersections.empty())
-		return ;
-
-	const Point3 & P1 = vIntersections[0];
-	if (vIntersections.size()==1) //limit case
+	auto add_unique_intersection = [&](const Point3& p)
 	{
-		if (tA.contains(P1))
-			split_triangle_with_vertex(iTriangle, P1);
+		for (size_t i = 0; i < vIntersections.size(); ++i)
+		{
+			if ((vIntersections[i] - p).norm() <= EPS)
+				return;
+		}
+		vIntersections.push_back(p);
+	};
+
+	auto collect_segment_triangle = [&](const Triangle3& tRef, const Segment3& edge)
+	{
+		Point3 p;
+		if (tRef.intersect_with(edge, p))
+			add_unique_intersection(p);
+	};
+
+	collect_segment_triangle(tA, Segment3(tSplitter.p1(), tSplitter.p2()));
+	collect_segment_triangle(tA, Segment3(tSplitter.p2(), tSplitter.p3()));
+	collect_segment_triangle(tA, Segment3(tSplitter.p3(), tSplitter.p1()));
+
+	collect_segment_triangle(tSplitter, Segment3(tA.p1(), tA.p2()));
+	collect_segment_triangle(tSplitter, Segment3(tA.p2(), tA.p3()));
+	collect_segment_triangle(tSplitter, Segment3(tA.p3(), tA.p1()));
+
+	if (vIntersections.empty())
+		return;
+
+	if (vIntersections.size() == 1)
+	{
+		split_triangle_with_vertex(iTriangle, vIntersections[0]);
 		return;
 	}
 
-	// global case, 2 intersections
-	const Point3& P2 = vIntersections[1];
-	bool bP1Inside = tA.contains(P1);
-	bool bP2Inside = tA.contains(P2);
-
-	if ( (bP1Inside == false) && (bP2Inside == false))
+	Point3 P1 = vIntersections[0];
+	Point3 P2 = vIntersections[1];
+	double dMax = (P1 - P2).norm_square();
+	for (size_t i = 0; i < vIntersections.size(); ++i)
 	{
-		//triangle is maybe cutted by a segment
-		Segment3 seg12(tA.p1(), tA.p2());
-		Segment3 seg13(tA.p1(), tA.p3());
-		Segment3 seg23(tA.p2(), tA.p3());
-	
-		Segment3 splitSeg(P1, P2);
-		Point3 inter12, inter23, inter13;
-
-		bool b12 = seg12.intersect(splitSeg, inter12);
-		bool b13 = seg13.intersect(splitSeg, inter13);
-		bool b23 = seg23.intersect(splitSeg, inter23);
-
-		if ((b12 || b13 || b23) == false)
-			return; // not intersection
-
-		assert((b12 && b13 && b23) == false); //not possible to intersect all 3 sides
-
-	}
-
-	/*
-
-	if (vIntersections.size() > 0)
-	{
-		const auto& p = vIntersections[0];
-		int iVertice = add_vertex(p);
-		split_triangle_with_vertex(iTriangle, iVertice); // new triangles are created at the end
-
-		if (vIntersections.size() > 1)
+		for (size_t j = i + 1; j < vIntersections.size(); ++j)
 		{
-			const auto& p = vIntersections[1];
-			int iVertice = add_vertex(p);
-
-			get_triangle(nb_triangles() - 3, tA);
-			if (tA.contains(p)) //todo add bounding box ... tests
+			double d = (vIntersections[i] - vIntersections[j]).norm_square();
+			if (d > dMax)
 			{
-				split_triangle_with_vertex(nb_triangles() - 3, iVertice); // new triangles are created at the end
-			}
-			else //only 2 point max are possible
-			{
-				get_triangle(nb_triangles() - 2, tA);
-				if (tA.contains(p)) //todo add bounding box ... tests
-					split_triangle_with_vertex(nb_triangles() - 2, iVertice); // new triangles are created at the end
-				else
-					split_triangle_with_vertex(nb_triangles() - 1, iVertice); // new triangles are created at the end
+				dMax = d;
+				P1 = vIntersections[i];
+				P2 = vIntersections[j];
 			}
 		}
 	}
 
-	*/
+	if (dMax <= EPS * EPS)
+		return;
 
-// must use split_edge_with_vertex()
+	int iVertice = add_vertex(P1);
+	split_triangle_with_vertex(iTriangle, iVertice);
+
+	int iVertice2 = add_vertex(P2);
+
+	int iT1 = nb_triangles() - 3;
+	int iT2 = nb_triangles() - 2;
+	int iT3 = nb_triangles() - 1;
+
+	Triangle3 tSplit;
+	get_triangle(iT1, tSplit);
+	if (tSplit.contains(P2))
+	{
+		split_triangle_with_vertex(iT1, iVertice2);
+		return;
+	}
+
+	get_triangle(iT2, tSplit);
+	if (tSplit.contains(P2))
+	{
+		split_triangle_with_vertex(iT2, iVertice2);
+		return;
+	}
+
+	get_triangle(iT3, tSplit);
+	if (tSplit.contains(P2))
+		split_triangle_with_vertex(iT3, iVertice2);
 
 }
 

@@ -4,25 +4,26 @@
 #include "NurbsSurface.h"
 
 #include <vector>
-using namespace std;
 class Transform;
 
 ///////////////////////////////////////////////////////////////////////////
 class NurbsSolid
 {
 public:
-    NurbsSolid();
-    virtual ~NurbsSolid();
-    void clear();
+	NurbsSolid();
+	virtual ~NurbsSolid();
+	void clear();
 
-    void add_surface(const NurbsSurface& ns);
-    vector<NurbsSurface>& surfaces();
-    const vector<NurbsSurface>& surfaces() const;
+	void add_surface(const NurbsSurface& ns);
+	std::vector<NurbsSurface>& surfaces();
+	const std::vector<NurbsSurface>& surfaces() const;
 
-    void apply_transform(const Transform& t);
+	void apply_transform(const Transform& t);
+
+	void append(const NurbsSolid& src);
 
 private:
-	vector<NurbsSurface> _surfaces;
+	std::vector<NurbsSurface> _surfaces;
 };
 ///////////////////////////////////////////////////////////////////////////
 

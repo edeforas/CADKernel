@@ -63,6 +63,37 @@ void test_nurbssurface_square()
 	sw.write(n);
 }
 ///////////////////////////////////////////////////////////////////////////
+void test_nurbssurface_differential_plane()
+{
+	cout << endl << "test_nurbssurface_differential_plane" << endl;
+
+	NurbsSurface n;
+	n.set_degree(1, 1);
+	n.set_points({ Point3(0.,0.,0.),Point3(1.,0.,0.),Point3(0.,1.,0.),Point3(1.,1.,0.) }, 2, 2);
+	n.set_uniform_u();
+	n.set_uniform_v();
+	n.set_equals_weights();
+
+	Point3 du, dv, duu, duv, dvv;
+	n.evaluate_derivatives(0.3, 0.7, du, dv, duu, duv, dvv);
+	test_near(du.x(), 1., 1.e-10);
+	test_near(du.y(), 0., 1.e-10);
+	test_near(dv.x(), 0., 1.e-10);
+	test_near(dv.y(), 1., 1.e-10);
+	test_near(duu.norm(), 0., 1.e-10);
+	test_near(duv.norm(), 0., 1.e-10);
+	test_near(dvv.norm(), 0., 1.e-10);
+
+	Point3 normal;
+	test_bool(n.normal(0.4, 0.6, normal));
+	test_near(std::fabs(normal.z()), 1., 1.e-10);
+
+	double K, H;
+	test_bool(n.curvature(0.4, 0.6, K, H));
+	test_near(K, 0., 1.e-10);
+	test_near(H, 0., 1.e-10);
+}
+///////////////////////////////////////////////////////////////////////////
 void test_nurbssurface_flatdisk()
 {
 	cout << endl << "test_nurbssurface_flatdisk using 4 quarter circles as borders" << endl;
@@ -131,6 +162,40 @@ void test_nurbssurface_cylinder()
 	StepWriter sw;
 	sw.open("test_nurbssurface_cylinder.step");
 	sw.write(n);
+}
+///////////////////////////////////////////////////////////////////////////
+void test_nurbssurface_differential_cylinder()
+{
+	cout << endl << "test_nurbssurface_differential_cylinder" << endl;
+
+	NurbsSurface n;
+	n.set_degree(2, 1);
+	n.set_knots_u({ 0., 0., 0., 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1., 1., 1. });
+	n.set_knots_v({ 0., 0., 1., 1. });
+	n.set_weights({
+		1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,
+		1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.
+	});
+	n.set_points({
+		Point3(1.,0.,0.),Point3(1.,1.,0.),Point3(0.,1.,0.),
+		Point3(-1.,1.,0.),Point3(-1.,0.,0.),Point3(-1.,-1.,0.),
+		Point3(0.,-1.,0.),Point3(1.,-1.,0.),Point3(1.,0.,0.),
+		Point3(1.,0.,2.),Point3(1.,1.,2.),Point3(0.,1.,2.),
+		Point3(-1.,1.,2.),Point3(-1.,0.,2.),Point3(-1.,-1.,2.),
+		Point3(0.,-1.,2.),Point3(1.,-1.,2.),Point3(1.,0.,2.)
+	}, 9, 2);
+
+	for (double u = 0.1; u <= 0.9; u += 0.2)
+	{
+		Point3 normal;
+		test_bool(n.normal(u, 0.5, normal));
+		test_near(normal.z(), 0., 1.e-8);
+
+		double K, H;
+		test_bool(n.curvature(u, 0.5, K, H));
+		test_near(K, 0., 2.e-5);
+		test_near(std::fabs(H), 0.5, 2.e-3);
+	}
 }
 ///////////////////////////////////////////////////////////////////////////
 
@@ -574,7 +639,9 @@ void test_nurbssurface_deg3_insert_knot()
 int main()
 {
 	test_nurbssurface_square();
+	test_nurbssurface_differential_plane();
 	test_nurbssurface_flatdisk();
+	test_nurbssurface_differential_cylinder();
 	test_nurbssurface_cylinder();
 
 	test_nurbssurface_deg1();

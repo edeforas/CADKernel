@@ -58,7 +58,7 @@ void test_nurbsextrude_random_deg2()
 	for (int i = 0; i < nbPoints; i++)
 		points.push_back(Point3((double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX));
 
-	NurbsFactory::create_curve_from_points(points, degree,nc);
+	NurbsUtil::create_curve_from_points(points, degree,nc);
 
 	Point3 direction(0, 0, 1.);
 	NurbsSurface ns;

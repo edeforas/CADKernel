@@ -5,6 +5,8 @@
 #include "RendererLight.h"
 #include "Geometry.h"
 class Mesh;
+class NurbsSurface;
+class NurbsSolid;
 
 #include <vector>
 using namespace std;
@@ -22,6 +24,8 @@ public:
 	void add_diffuse_light(int iDiffuseColor, double dDiffuseFactor, const Point3& direction);
 
 	void draw_mesh(const Mesh& m, bool bDrawEdges = false, int iColor = -1); //use mesh color if iColor is -1 
+	void draw_surface(const NurbsSurface& n, int iNbSegments = 5, bool bDrawEdges = false, int iColor = -1);
+	void draw_solid(const NurbsSolid& n, int iNbSegments = 5, bool bDrawEdges = false, int iColor = -1);
 	bool draw_triangle_1color(const Point3& A, const Point3& B, const Point3& C, int color, bool bTwofaces = false); //return true if face was visible
 	void draw_line(const Point3& p1, const Point3& p2, int color);
 	void draw_pixel(const Point3& pPixels, int color);

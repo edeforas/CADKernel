@@ -25,7 +25,12 @@ Face::~Face()
 
 Face& Face::operator=(const Face& other)
 {
-	return *new Face(*this);
+	if (this == &other)
+		return *this;
+
+	_mesh = other._mesh;
+	_iColor = other._iColor;
+	return *this;
 }
 
 void Face::set_color(int iColor)

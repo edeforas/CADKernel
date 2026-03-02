@@ -22,6 +22,35 @@ void test_near(double a, double ref, double epsilon=1.e-10,const string& sMessag
 		exit(-1);
 	}
 }
+
+
+void test_bool(bool b, const string& sMessage = "")
+{
+	if (!b)
+	{
+		cerr << "Test Error: " << sMessage.c_str() << endl;
+		exit(-1);
+	}
+}
+
+void save_solid(const NurbsSolid& n, const string& filename)
+{
+	StepWriter sw;
+	sw.open(filename);
+	test_bool(sw.is_open(), string("step writer should open file: ") + filename);
+	sw.write(n);
+	sw.close();
+
+	ifstream in(filename.c_str());
+	test_bool(in.is_open(), string("step file should exist: ") + filename);
+
+	OBJWriter o;
+	Mesh m;
+	NurbsUtil::to_mesh(n, m);
+	o.open(filename + ".obj");
+	o.write(m);
+}
+
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_circle()
 {
@@ -76,9 +105,7 @@ void test_nurbsfactory_create_solid_cylinder()
 	NurbsUtil::to_mesh(ns, m, 10);
 	OBJFile::save("test_nurbsfactory_create_solid_cylinder.obj", m);
 
-	StepWriter sw;
-	sw.open("test_nurbsfactory_create_solid_cylinder.step");
-	sw.write(ns);
+	save_solid(ns, "test_nurbsfactory_create_solid_cylinder");
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_solid_sphere()
@@ -88,9 +115,7 @@ void test_nurbsfactory_create_solid_sphere()
 	NurbsSolid n;
 	NurbsFactory::create_sphere(20, n);
 
-	Mesh m;
-	NurbsUtil::to_mesh(n, m, 10);
-	OBJFile::save("test_nurbsfactory_create_solid_sphere.obj", m);
+	save_solid(n, "test_nurbsfactory_create_solid_sphere");
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_solid_torus()
@@ -100,13 +125,7 @@ void test_nurbsfactory_create_solid_torus()
 	NurbsSolid n;
 	NurbsFactory::create_torus(30,10, n);
 
-	Mesh m;
-	NurbsUtil::to_mesh(n, m, 10);
-	OBJFile::save("test_nurbsfactory_create_solid_torus.obj", m);
-
-	StepWriter sw;
-	sw.open("test_nurbsfactory_create_solid_torus.step");
-	sw.write(n);
+	save_solid(n, "test_nurbsfactory_create_solid_torus");
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_solid_box()
@@ -123,6 +142,34 @@ void test_nurbsfactory_create_solid_box()
 	StepWriter sw;
 	sw.open("test_nurbsfactory_create_solid_box.step");
 	sw.write(ns);
+}
+///////////////////////////////////////////////////////////////////////////
+void test_nurbsfactory_fill_curve_to_surface_export()
+{
+	cout << endl << "test_nurbsfactory_fill_curve_to_surface_export" << endl;
+
+	NurbsCurve nc;
+	NurbsFactory::create_circle(25., nc);
+
+	NurbsSurface ns;
+	NurbsFactory::create_filled_surface(nc, ns);
+
+	test_bool(ns.nb_points_u() == nc.nb_points(), "filled surface should preserve number of U control points");
+	test_bool(ns.nb_points_v() == 2, "filled surface should have two V rows");
+
+	const string stepFilename = "test_nurbsfactory_fill_curve_to_surface.step";
+	StepWriter sw;
+	sw.open(stepFilename);
+	test_bool(sw.is_open(), string("step writer should open file: ") + stepFilename);
+	sw.write(ns);
+	sw.close();
+
+	ifstream in(stepFilename.c_str());
+	test_bool(in.is_open(), string("step file should exist: ") + stepFilename);
+
+	Mesh m;
+	NurbsUtil::to_mesh(ns, m, 30);
+	test_bool(OBJFile::save("test_nurbsfactory_fill_curve_to_surface.obj", m), "obj export should succeed");
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_solid_torus_transform()
@@ -168,6 +215,7 @@ int main()
 	test_nurbsfactory_create_solid_sphere();
 	test_nurbsfactory_create_solid_torus();
 	test_nurbsfactory_create_solid_box();
+	test_nurbsfactory_fill_curve_to_surface_export();
 	test_nurbsfactory_create_solid_torus_transform();
 
 	cout << "Test Finished.";

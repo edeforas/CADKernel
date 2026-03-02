@@ -7,7 +7,7 @@
 int main()
 {
 	OBJWriter ow;
-	ow.open("test_meshfactory.obj");
+	ow.open("sample_meshfactory.obj");
 
 	Mesh m;
 	MeshFactory::create_tetrahedron(25.,m);

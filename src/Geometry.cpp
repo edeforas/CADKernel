@@ -2,6 +2,76 @@
 
 #include <cmath>
 
+namespace
+{
+struct Point2
+{
+	double u;
+	double v;
+};
+
+double orient2d(const Point2& a, const Point2& b, const Point2& c)
+{
+	return (b.u - a.u) * (c.v - a.v) - (b.v - a.v) * (c.u - a.u);
+}
+
+bool on_segment_2d(const Point2& a, const Point2& b, const Point2& p, double eps)
+{
+	if (std::fabs(orient2d(a, b, p)) > eps)
+		return false;
+
+	if ((p.u < std::fmin(a.u, b.u) - eps) || (p.u > std::fmax(a.u, b.u) + eps))
+		return false;
+
+	if ((p.v < std::fmin(a.v, b.v) - eps) || (p.v > std::fmax(a.v, b.v) + eps))
+		return false;
+
+	return true;
+}
+
+bool segments_intersect_2d(const Point2& a1, const Point2& a2, const Point2& b1, const Point2& b2, double eps)
+{
+	double o1 = orient2d(a1, a2, b1);
+	double o2 = orient2d(a1, a2, b2);
+	double o3 = orient2d(b1, b2, a1);
+	double o4 = orient2d(b1, b2, a2);
+
+	if (((o1 > eps && o2 < -eps) || (o1 < -eps && o2 > eps)) &&
+		((o3 > eps && o4 < -eps) || (o3 < -eps && o4 > eps)))
+		return true;
+
+	if (std::fabs(o1) <= eps && on_segment_2d(a1, a2, b1, eps)) return true;
+	if (std::fabs(o2) <= eps && on_segment_2d(a1, a2, b2, eps)) return true;
+	if (std::fabs(o3) <= eps && on_segment_2d(b1, b2, a1, eps)) return true;
+	if (std::fabs(o4) <= eps && on_segment_2d(b1, b2, a2, eps)) return true;
+
+	return false;
+}
+
+bool point_in_triangle_2d(const Point2& p, const Point2& a, const Point2& b, const Point2& c, double eps)
+{
+	double o1 = orient2d(a, b, p);
+	double o2 = orient2d(b, c, p);
+	double o3 = orient2d(c, a, p);
+
+	bool bHasNeg = (o1 < -eps) || (o2 < -eps) || (o3 < -eps);
+	bool bHasPos = (o1 > eps) || (o2 > eps) || (o3 > eps);
+
+	return !(bHasNeg && bHasPos);
+}
+
+Point2 project_to_2d(const Point3& p, int iDropAxis)
+{
+	if (iDropAxis == 0)
+		return { p.y(), p.z() };
+
+	if (iDropAxis == 1)
+		return { p.x(), p.z() };
+
+	return { p.x(), p.y() };
+}
+}
+
 inline double squared(double a) //todo factorize ?
 {
 	return a * a;
@@ -167,6 +237,17 @@ void Point3::normalize()
 	double d = 1. / norm();
 	this->operator*=(d);
 }
+
+void Point3::sanitize()
+{
+    if (!std::isfinite(_x))
+        _x = 0.;
+    if (!std::isfinite(_y))
+        _y = 0.;
+    if (!std::isfinite(_z))
+        _z = 0.;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 Line3::Line3()
 {
@@ -375,6 +456,22 @@ bool Triangle3::contains(const Point3& p) const
 bool Triangle3::intersect_with(const Segment3& s, Point3& pIntersection) const
 {
 	Plane3 p(*this);
+	const double EPS = 1.e-8;
+
+	const Point3& s1 = s.p1();
+	const Point3& s2 = s.p2();
+
+	if (std::fabs(p.distance_to(s1)) <= EPS && contains(s1))
+	{
+		pIntersection = s1;
+		return true;
+	}
+
+	if (std::fabs(p.distance_to(s2)) <= EPS && contains(s2))
+	{
+		pIntersection = s2;
+		return true;
+	}
 
 	if (p.intersect_with(s, pIntersection) == false)
 		return false;
@@ -384,24 +481,50 @@ bool Triangle3::intersect_with(const Segment3& s, Point3& pIntersection) const
 
 bool Triangle3::intersect_with(const Triangle3& t) const
 {
-	// first tests from https://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
+	const double EPS = 1.e-8;
 
 	BoundingBox3 bA(*this);
 	BoundingBox3 bB(t);
-	Point3 pInter;
 
 	if (bA.intersect_with(bB) == false)
 		return false;
 
-	Plane3 planeB(t);
-	if (cutted_by(planeB) == false)
-		return false;
-
 	Plane3 planeA(*this);
-	if (t.cutted_by(planeA) == false)
+	Plane3 planeB(t);
+
+	double dA1 = planeB.distance_to(p1());
+	double dA2 = planeB.distance_to(p2());
+	double dA3 = planeB.distance_to(p3());
+
+	if ((dA1 > EPS && dA2 > EPS && dA3 > EPS) ||
+		(dA1 < -EPS && dA2 < -EPS && dA3 < -EPS))
 		return false;
 
-	//compute if any segment cut any triangles, slow but easy
+	double dB1 = planeA.distance_to(t.p1());
+	double dB2 = planeA.distance_to(t.p2());
+	double dB3 = planeA.distance_to(t.p3());
+
+	if ((dB1 > EPS && dB2 > EPS && dB3 > EPS) ||
+		(dB1 < -EPS && dB2 < -EPS && dB3 < -EPS))
+		return false;
+
+	auto point_on_triangle = [EPS](const Point3& p, const Triangle3& tri, const Plane3& triPlane)
+	{
+		if (std::fabs(triPlane.distance_to(p)) > EPS)
+			return false;
+
+		return tri.contains(p);
+	};
+
+	if (point_on_triangle(p1(), t, planeB)) return true;
+	if (point_on_triangle(p2(), t, planeB)) return true;
+	if (point_on_triangle(p3(), t, planeB)) return true;
+
+	if (point_on_triangle(t.p1(), *this, planeA)) return true;
+	if (point_on_triangle(t.p2(), *this, planeA)) return true;
+	if (point_on_triangle(t.p3(), *this, planeA)) return true;
+
+	Point3 pInter;
 	if (intersect_with(Segment3(t.p1(), t.p2()), pInter))
 		return true;
 
@@ -419,6 +542,45 @@ bool Triangle3::intersect_with(const Triangle3& t) const
 
 	if (t.intersect_with(Segment3(p2(), p3()), pInter))
 		return true;
+
+	bool bCoplanar =
+		(std::fabs(dA1) <= EPS && std::fabs(dA2) <= EPS && std::fabs(dA3) <= EPS &&
+		 std::fabs(dB1) <= EPS && std::fabs(dB2) <= EPS && std::fabs(dB3) <= EPS);
+
+	if (!bCoplanar)
+		return false;
+
+	Point3 n = planeA.normal();
+	double ax = std::fabs(n.x());
+	double ay = std::fabs(n.y());
+	double az = std::fabs(n.z());
+
+	int iDropAxis = 2;
+	if ((ax >= ay) && (ax >= az))
+		iDropAxis = 0;
+	else if ((ay >= ax) && (ay >= az))
+		iDropAxis = 1;
+
+	Point2 A1 = project_to_2d(p1(), iDropAxis);
+	Point2 A2 = project_to_2d(p2(), iDropAxis);
+	Point2 A3 = project_to_2d(p3(), iDropAxis);
+
+	Point2 B1 = project_to_2d(t.p1(), iDropAxis);
+	Point2 B2 = project_to_2d(t.p2(), iDropAxis);
+	Point2 B3 = project_to_2d(t.p3(), iDropAxis);
+
+	if (segments_intersect_2d(A1, A2, B1, B2, EPS)) return true;
+	if (segments_intersect_2d(A1, A2, B2, B3, EPS)) return true;
+	if (segments_intersect_2d(A1, A2, B3, B1, EPS)) return true;
+	if (segments_intersect_2d(A2, A3, B1, B2, EPS)) return true;
+	if (segments_intersect_2d(A2, A3, B2, B3, EPS)) return true;
+	if (segments_intersect_2d(A2, A3, B3, B1, EPS)) return true;
+	if (segments_intersect_2d(A3, A1, B1, B2, EPS)) return true;
+	if (segments_intersect_2d(A3, A1, B2, B3, EPS)) return true;
+	if (segments_intersect_2d(A3, A1, B3, B1, EPS)) return true;
+
+	if (point_in_triangle_2d(A1, B1, B2, B3, EPS)) return true;
+	if (point_in_triangle_2d(B1, A1, A2, A3, EPS)) return true;
 
 	return false;
 }
@@ -502,7 +664,7 @@ bool Plane3::intersect_with(const Segment3& s, Point3& pIntersection) const
 	return true;
 }
 
-bool Plane3::intersect_with(const Plane3& p, Line3& pIntersection) const
+bool Plane3::intersect_with(const Plane3& p, const Line3& pIntersection) const
 {
 	double espilon = 1.e-8;
 
@@ -601,4 +763,6 @@ bool BoundingBox3::intersect_with(const BoundingBox3& b) const
 	return true;
 }
 ///////////////////////////////////////////////////////////////////////////
+
+
 

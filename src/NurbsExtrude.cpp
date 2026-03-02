@@ -1,9 +1,5 @@
 #include "NurbsExtrude.h"
 
-#include <cassert>
-#include <algorithm>
-using namespace std;
-
 #include "NurbsCurve.h"
 #include "NurbsSurface.h"
 
@@ -20,8 +16,8 @@ bool NurbsExtrude::extrude(const NurbsCurve& nc, const Point3& direction, NurbsS
 
 	//extrude along V
 
-	vector<double> weights = nc.weights();
-	vector<Point3> points= nc.points();
+	std::vector<double> weights = nc.weights();
+	std::vector<Point3> points= nc.points();
 	int iOldSize = points.size();
 
 	//duplicate weights
@@ -34,8 +30,7 @@ bool NurbsExtrude::extrude(const NurbsCurve& nc, const Point3& direction, NurbsS
 
 	// extrude
 	int degreeV = 1;
-	vector<double> knotsV = { 0., 0., 1., 1. };
-	NurbsSurface n;
+	std::vector<double> knotsV = { 0., 0., 1., 1. };
 
 	ns.set_degree(nc.degree(), degreeV);
 	ns.set_knots_u(nc.knots());

@@ -29,7 +29,7 @@ int main()
 	m.apply_transform(Scale(1, 1, 0.3));
 	
 	cout << "Saving Mesh to Obj file" << endl;
-	OBJFile::save("test_mesh_mandelbrot.obj", m);
+	OBJFile::save("sample_mesh_mandelbrot.obj", m);
 
 	return 0;
 }

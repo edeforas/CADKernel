@@ -4,6 +4,7 @@ using namespace std;
 
 #include "Renderer.h"
 #include "Mesh.h"
+#include "NurbsUtil.h"
 
 #define MAXINT (1<<28)
 
@@ -104,6 +105,20 @@ void Renderer::draw_mesh(const Mesh& m, bool bDrawEdges, int iColor)
 			draw_line(t.p2(), t.p3(), (0)); //RGB(0,0,0)
 		}
 	}
+}
+////////////////////////////////////////////////////////////////////////////////
+void Renderer::draw_surface(const NurbsSurface& n, int iNbSegments, bool bDrawEdges, int iColor)
+{
+	Mesh m;
+	NurbsUtil::to_mesh(n, m, iNbSegments);
+	draw_mesh(m, bDrawEdges, iColor);
+}
+////////////////////////////////////////////////////////////////////////////////
+void Renderer::draw_solid(const NurbsSolid& n, int iNbSegments, bool bDrawEdges, int iColor)
+{
+	Mesh m;
+	NurbsUtil::to_mesh(n, m, iNbSegments);
+	draw_mesh(m, bDrawEdges, iColor);
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool Renderer::draw_triangle_1color(const Point3& A, const Point3& B, const Point3& C, int iColor,bool bTwofaces)

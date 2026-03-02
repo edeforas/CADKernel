@@ -1,3 +1,8 @@
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+	cmake_minimum_required(VERSION 3.20.0)
+	project(CADTest LANGUAGES CXX)
+endif()
+
 set(CADTEST_FILES
 		
 	Geometry.cpp Geometry.h
@@ -23,6 +28,10 @@ set(CADTEST_FILES
 	
 	MeshTessellate.cpp MeshTessellate.h
 	MeshBoolean.cpp MeshBoolean.h
+	NurbsBoolean.cpp NurbsBoolean.h
+	NurbsBooleanFallback.cpp NurbsBooleanFallback.h
+	NurbsIntersection.h
+	NurbsTrimmedSurface.cpp NurbsTrimmedSurface.h
 	STLFile.cpp STLFile.h
 	OBJFile.cpp OBJFile.h
 	
@@ -30,7 +39,10 @@ set(CADTEST_FILES
 	NurbsSurface.cpp NurbsSurface.h
 	NurbsExtrude.cpp NurbsExtrude.h
 	NurbsRuled.cpp NurbsRuled.h
+	NurbsFillet.cpp NurbsFillet.h
 	NurbsRevolve.cpp NurbsRevolve.h
+	NurbsSweep.cpp NurbsSweep.h
+	NurbsFitting.cpp NurbsFitting.h
 	NurbsUtil.cpp NurbsUtil.h
 	NurbsFactory.cpp NurbsFactory.h
 	NurbsSolid.cpp NurbsSolid.h
@@ -44,7 +56,10 @@ set(CADTEST_FILES
 	ImageIoBmp.cpp ImageIoBmp.h
 	ImageUtil.cpp ImageUtil.h
 	Color.h	
+	BoundingBox.cpp BoundingBox.h
+	LinearAlgebra.cpp LinearAlgebra.h
 )
 
-include_directories(.)
-add_library( libCADTest STATIC ${CADTEST_FILES})
+add_library(libCADTest STATIC ${CADTEST_FILES})
+target_include_directories(libCADTest PUBLIC .)
+target_compile_features(libCADTest PUBLIC cxx_std_11)

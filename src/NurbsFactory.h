@@ -8,14 +8,13 @@ class NurbsSurface;
 class NurbsSolid;
 
 #include <vector>
-using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////
 namespace NurbsFactory
 {
 	// curves
-	void create_curve_from_points(const vector<Point3>& points, int degree, NurbsCurve& nc); //no rational, uniform
 	void create_circle(double dRadius, NurbsCurve& nc);
+	void create_filled_surface(const NurbsCurve& nc, NurbsSurface& ns);
 	
 	// surfaces
 	void create_triangle(const Point3& p1, const Point3& p2, const Point3& p3, NurbsSurface& ns);

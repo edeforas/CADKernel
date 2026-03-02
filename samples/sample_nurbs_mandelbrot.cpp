@@ -15,7 +15,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-	//create a nurbs using generated Mandelbrot set, save as Mesh
+	//create a nurbs using generated Mandelbrot set, save as Nurbs and Mesh
 
 	cout << "Generating Mandelbrot set" << endl;
 	Image imgMandelbrot;
@@ -34,10 +34,10 @@ int main()
 
 	Mesh m;
 	NurbsUtil::to_mesh(n, m);
-	OBJFile::save("test_nurbs_mandelbrot.obj", m);
+	OBJFile::save("sample_nurbs_mandelbrot.obj", m);
 
 	StepWriter sw;
-	sw.open("test_nurbs_mandelbrot.step");
+	sw.open("sample_nurbs_mandelbrot.step");
 	sw.write(n);
 
 	return 0;
