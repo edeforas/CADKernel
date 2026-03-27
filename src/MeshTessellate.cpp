@@ -2,12 +2,14 @@
 
 ///////////////////////////////////////////////////////////////////////////
 MeshTessellate::MeshTessellate()
-{ }
+{
+}
 
 MeshTessellate::~MeshTessellate()
-{ }
+{
+}
 
-void MeshTessellate::compute( const Mesh & meshIn, int iNbSegments, Mesh& meshOut)
+void MeshTessellate::compute(const Mesh& meshIn, int iNbSegments, Mesh& meshOut)
 {
 	meshOut.clear();
 	for (int iTriangle = 0; iTriangle < meshIn.nb_triangles(); iTriangle++)
@@ -29,17 +31,17 @@ void MeshTessellate::compute( const Mesh & meshIn, int iNbSegments, Mesh& meshOu
 		{
 			//add first triangle
 			Point3 p1x = interpolate(a, b, c, stripe, 0, iNbSegments);
-			Point3 p2x = interpolate(a, b, c, stripe+1, 0, iNbSegments);
+			Point3 p2x = interpolate(a, b, c, stripe + 1, 0, iNbSegments);
 			Point3 p3x = interpolate(a, b, c, stripe, 1, iNbSegments);
 			meshOut.add_triangle(p1x, p2x, p3x);
 
 			//finish stripe
 			for (int j = 0; j < stripe; j++)
 			{
-				Point3 p1 = interpolate(a, b, c, stripe-j, j, iNbSegments);
-				Point3 p2 = interpolate(a, b, c, stripe-j , j+1, iNbSegments);
-				Point3 p3 = interpolate(a, b, c, stripe-j - 1, j+1, iNbSegments);
-				Point3 p4 = interpolate(a, b, c, stripe-j -1, j+2, iNbSegments);
+				Point3 p1 = interpolate(a, b, c, stripe - j, j, iNbSegments);
+				Point3 p2 = interpolate(a, b, c, stripe - j, j + 1, iNbSegments);
+				Point3 p3 = interpolate(a, b, c, stripe - j - 1, j + 1, iNbSegments);
+				Point3 p4 = interpolate(a, b, c, stripe - j - 1, j + 2, iNbSegments);
 				meshOut.add_triangle(p1, p2, p3);
 				meshOut.add_triangle(p3, p2, p4);
 			}

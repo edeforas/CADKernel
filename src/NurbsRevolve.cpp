@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "NurbsCurve.h"
+#include "NurbsConstants.h"
 #include "NurbsSurface.h"
 #include "NurbsUtil.h"
 
@@ -11,7 +12,7 @@
 
 namespace
 {
-	constexpr double kPi = 3.14159265358979323846;
+	constexpr double kPi = NurbsConstants::Pi;
 
 	Point3 rotate_about_z(const Point3& p, double a)
 	{

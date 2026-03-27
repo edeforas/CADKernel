@@ -390,3 +390,15 @@ bool NurbsFillet::create_fillet_on_solid_auto(const NurbsSolid& solid, int iSurf
 
 	return create_fillet_between_surfaces(surfaces[iSurfaceA], eA, surfaces[iSurfaceB], eB, dRadius, out);
 }
+
+bool NurbsFillet::create_fillet_or_chamfer_on_solid(const NurbsSolid& solid, int iSurfaceA, int iSurfaceB, bool isFillet, double size, NurbsSurface& out) const
+{
+	if (isFillet)
+	{
+		return create_fillet_on_solid_auto(solid, iSurfaceA, iSurfaceB, size, out);
+	}
+	else
+	{
+		return create_chamfer_on_solid_auto(solid, iSurfaceA, iSurfaceB, size, size, out);
+	}
+}

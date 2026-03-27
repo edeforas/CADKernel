@@ -184,7 +184,9 @@ void test_step_read_torus()
 {
 	NurbsSurface loaded;
 	StepReader reader;
-	test_bool(reader.read("test_torus.step", loaded), "step reader should load torus file");
+	reader.open("test_torus.step");
+	test_bool(reader.read(loaded), "step reader should load torus file");
+	test_bool(!reader.read(loaded), "should not read a second surface");
 
 	test_bool(loaded.nb_points_u() > 1, "loaded torus should have at least 2 control points in U");
 	test_bool(loaded.nb_points_v() > 1, "loaded torus should have at least 2 control points in V");
@@ -208,7 +210,9 @@ void test_step_read_solid_box()
 
 	NurbsSolid loaded;
 	StepReader reader;
-	test_bool(reader.read("test_box.step", loaded), "step reader should load solid box file");
+	reader.open("test_box.step");
+	test_bool(reader.read(loaded), "step reader should load solid box file");
+	test_bool(!reader.read(loaded), "should not read a second solid");
 	test_bool(loaded.surfaces().size() == source.surfaces().size(), "loaded solid box surface count mismatch");
 
 	for (size_t i = 0; i < loaded.surfaces().size(); ++i)
@@ -237,7 +241,9 @@ void test_step_read_solid_torus()
 
 	NurbsSolid loaded;
 	StepReader reader;
-	test_bool(reader.read("test_solid_torus.step", loaded), "step reader should load solid torus file");
+	reader.open("test_solid_torus.step");
+	test_bool(reader.read(loaded), "step reader should load solid torus file");
+	test_bool(!reader.read(loaded), "should not read a second solid");
 	test_bool(loaded.surfaces().size() == source.surfaces().size(), "loaded solid torus surface count mismatch");
 
 	for (size_t i = 0; i < loaded.surfaces().size(); ++i)
@@ -284,6 +290,23 @@ void test_step_export_multiple_solids_single_representation()
 	test_bool(count_occurrences(content, "SHAPE_DEFINITION_REPRESENTATION") == 1, "multi solid export should use one shape definition representation");
 }
 
+void test_step_read_multiple_solids()
+{
+	StepReader reader;
+	reader.open("test_multi_solid.step");
+
+	NurbsSolid solid1, solid2, solid3;
+	test_bool(reader.read(solid1), "should read first solid (torus)");
+	test_bool(reader.read(solid2), "should read second solid (box)");
+	test_bool(reader.read(solid3), "should read third solid (sphere)");
+	test_bool(!reader.read(solid1), "should not read fourth solid");
+
+	// Basic checks
+	test_bool(solid1.surfaces().size() > 0, "first solid should have surfaces");
+	test_bool(solid2.surfaces().size() > 0, "second solid should have surfaces");
+	test_bool(solid3.surfaces().size() > 0, "third solid should have surfaces");
+}
+
 ///////////////////////////////////////////////////////////////////////////
 int main()
 {
@@ -293,6 +316,7 @@ int main()
 	test_step_read_solid_box();
 	test_step_read_solid_torus();
 	test_step_export_multiple_solids_single_representation();
+	test_step_read_multiple_solids();
 
 	cout << "Test Finished.";
 	return 0;

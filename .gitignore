@@ -17,3 +17,5 @@ CMakeCache*
 /src/CMakeFiles/*
 *RelWithDebInfo*
 /doc/*
+CMakeFiles
+build

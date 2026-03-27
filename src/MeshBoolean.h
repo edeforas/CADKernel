@@ -12,7 +12,7 @@ public:
     //split mesh into boolean Shells, WIP
     void compute_split(const Mesh& A, const Mesh& B, Mesh& Aonly, Mesh& Bonly, Mesh& AInB, Mesh& BInA);
 
-	//compute mesh intersection shell A∩B
+	//compute mesh intersection shell A ∩ B
 	void compute_intersection(const Mesh& A, const Mesh& B, Mesh& intersection);
 
     //compute mesh union shell A∪B

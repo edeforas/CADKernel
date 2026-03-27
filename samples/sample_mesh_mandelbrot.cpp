@@ -25,7 +25,7 @@ int main()
 	Mesh m;
 	vector<double> vd;
 	imBW.to_double(vd);
-	MeshUtil::create_from_z(vd, 256, 256, m);
+	MeshUtil::create_surface_from_z(vd, 256, 256, m);
 	m.apply_transform(Scale(1, 1, 0.3));
 	
 	cout << "Saving Mesh to Obj file" << endl;

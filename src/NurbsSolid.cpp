@@ -31,6 +31,13 @@ void NurbsSolid::add_surface(const NurbsSurface& ns)
 {
 	_surfaces.push_back(ns);
 }
+
+
+bool NurbsSolid::empty() const
+{
+	return _surfaces.empty();
+}
+
 ///////////////////////////////////////////////////////////////////////////
 void NurbsSolid::apply_transform(const Transform& t)
 {

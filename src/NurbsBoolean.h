@@ -20,15 +20,6 @@ public:
 	bool boolean_intersection(const NurbsSolid& a, const NurbsSolid& b, NurbsSolid& result) const;
 	bool boolean_difference_bbox(const NurbsSolid& a, const NurbsSolid& b, NurbsSolid& result) const;
 
-	bool boolean_union_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-	bool boolean_intersection_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-	bool boolean_difference_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-
-	// Experimental exact-path start: uses NURBS surface intersections to seed trimmed faces for overlap cases.
-	bool boolean_union_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-	bool boolean_intersection_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-	bool boolean_difference_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics = 0) const;
-
 };
 
 #endif

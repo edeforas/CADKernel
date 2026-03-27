@@ -9,7 +9,7 @@
 #include <vector>
 
 
-bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsSurface& surface)
+bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsSurface& surface, bool perpendicular)
 {
     surface.clear();
 
@@ -58,11 +58,60 @@ bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsS
         double pathWeight = pathWeights[j];
         Point3 offset = currentPathPoint - pathStart;
 
+        // If perpendicular, compute rotation
+        Point3 rotationAxis(0, 0, 0);
+        double rotationAngle = 0.0;
+        if (perpendicular) {
+            // Compute tangent using finite differences
+            Point3 tangent(0, 0, 0);
+            if (j == 0 && nV > 1) {
+                tangent = pathPoints[1] - pathPoints[0];
+            } else if (j == nV - 1 && nV > 1) {
+                tangent = pathPoints[nV - 1] - pathPoints[nV - 2];
+            } else if (nV > 2) {
+                tangent = (pathPoints[j + 1] - pathPoints[j - 1]) * 0.5;
+            }
+            if (tangent.norm_square() > 1e-12) {
+                tangent.normalize();
+                // Compute new normal: perpendicular to tangent
+                Point3 zAxis(0, 0, 1);
+                Point3 newNormal = zAxis.cross_product(tangent);
+                double newNormalNormSq = newNormal.norm_square();
+                if (newNormalNormSq > 1e-12) {
+                    newNormal.normalize();
+                    // Rotation axis: zAxis × newNormal
+                    rotationAxis = zAxis.cross_product(newNormal);
+                    double axisNormSq = rotationAxis.norm_square();
+                    if (axisNormSq > 1e-12) {
+                        rotationAxis.normalize();
+                        // Angle: acos(zAxis • newNormal)
+                        double cosAngle = zAxis.dot_product(newNormal);
+                        cosAngle = std::max(-1.0, std::min(1.0, cosAngle));
+                        rotationAngle = acos(cosAngle);
+                    }
+                }
+                // If newNormal is zero (tangent parallel to z-axis), no rotation needed
+            }
+        }
+
         for (int i = 0; i < nU; ++i)
         {
             Point3 profilePoint = profilePoints[i];
             profilePoint.sanitize();
             double profileWeight = profileWeights[i];
+
+            // Apply rotation if perpendicular
+            if (perpendicular && rotationAxis.norm_square() > 1e-12 && fabs(rotationAngle) > 1e-12) {
+                // Rodrigues' rotation formula
+                double cosA = cos(rotationAngle);
+                double sinA = sin(rotationAngle);
+                Point3 axis = rotationAxis; // Already normalized
+                Point3 rotated = profilePoint * cosA +
+                                axis.cross_product(profilePoint) * sinA +
+                                axis * (axis.dot_product(profilePoint) * (1 - cosA));
+                profilePoint = rotated;
+                profilePoint.sanitize(); // Ensure no NaN/inf values
+            }
 
             surfacePoints.push_back(profilePoint + offset);
             surfaceWeights.push_back(profileWeight * pathWeight);

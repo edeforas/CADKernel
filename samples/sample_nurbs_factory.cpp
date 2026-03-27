@@ -21,14 +21,14 @@ int main()
 
 	cout << "Creating torus" << endl;
 	NurbsSolid torus;
-	NurbsFactory::create_torus(10., 3., torus);
+	NurbsFactory::create_torus(6., 3., torus);
 	NurbsUtil::to_mesh(torus, m, 8);
 	sw.write(torus);
 	o.write(m);
 
 	cout << "Creating box" << endl;
 	NurbsSolid box;
-	NurbsFactory::create_box(10., 8., 6., box);
+	NurbsFactory::create_box(11., 9., 10., box);
 	box.apply_transform(Translation(Point3(20., 0., 0.)));
 	NurbsUtil::to_mesh(box, m, 8);
 	sw.write(box);
@@ -36,12 +36,19 @@ int main()
 
 	cout << "Creating sphere" << endl;
 	NurbsSolid sphere;
-	NurbsFactory::create_sphere(10., sphere);
+	NurbsFactory::create_sphere(8, sphere);
 	sphere.apply_transform(Translation(Point3(40., 0., 0.)));
 	NurbsUtil::to_mesh(sphere, m, 8);
 	sw.write(sphere);
 	o.write(m);
 
+	cout << "Creating cylinder" << endl;
+	NurbsSolid cylinder;
+	NurbsFactory::create_cylinder(7, 10, cylinder);
+	cylinder.apply_transform(Translation(Point3(0., 20., 0.)));
+	NurbsUtil::to_mesh(cylinder, m, 8);
+	sw.write(cylinder);
+	o.write(m);
 
 	sw.close();
 	o.close();

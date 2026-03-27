@@ -23,6 +23,7 @@ set(CADTEST_FILES
 	BezierUtil.cpp BezierUtil.h
 	QuadBezierTriangle.cpp QuadBezierTriangle.h
 	CubicBezierTriangles.cpp CubicBezierTriangles.h
+	BezierSurface.cpp BezierSurface.h
 	SmoothMesh.cpp SmoothMesh.h
 	SmoothMeshFactory.cpp SmoothMeshFactory.h
 	
@@ -30,11 +31,14 @@ set(CADTEST_FILES
 	MeshBoolean.cpp MeshBoolean.h
 	NurbsBoolean.cpp NurbsBoolean.h
 	NurbsBooleanFallback.cpp NurbsBooleanFallback.h
-	NurbsIntersection.h
+	NurbsIntersection.cpp NurbsIntersection.h
 	NurbsTrimmedSurface.cpp NurbsTrimmedSurface.h
 	STLFile.cpp STLFile.h
 	OBJFile.cpp OBJFile.h
 	
+	NurbsBasis.cpp NurbsBasis.h
+	NurbsConstants.h
+	NurbsKnots.cpp NurbsKnots.h
 	NurbsCurve.cpp NurbsCurve.h
 	NurbsSurface.cpp NurbsSurface.h
 	NurbsExtrude.cpp NurbsExtrude.h
@@ -43,7 +47,9 @@ set(CADTEST_FILES
 	NurbsRevolve.cpp NurbsRevolve.h
 	NurbsSweep.cpp NurbsSweep.h
 	NurbsFitting.cpp NurbsFitting.h
+	NurbsCurveJoin.cpp NurbsCurveJoin.h
 	NurbsUtil.cpp NurbsUtil.h
+	NurbsOffset.cpp NurbsOffset.h
 	NurbsFactory.cpp NurbsFactory.h
 	NurbsSolid.cpp NurbsSolid.h
 	StepFile.cpp StepFile.h

@@ -6,6 +6,7 @@
 #include "Geometry.h"
 #include "NurbsCurve.h"
 class Transform;
+class NurbsTrimmedSurface;
 
 ///////////////////////////////////////////////////////////////////////////
 class NurbsSurface
@@ -52,10 +53,20 @@ public:
 	void insert_knot_v(double v);
 	void insert_knot_uv(double u, double v);
 
+	NurbsCurve edge_u0() const;
+	NurbsCurve edge_u1() const;
+	NurbsCurve edge_v0() const;
+	NurbsCurve edge_v1() const;
+
 	bool degree_elevation_u();
 	bool degree_elevation_v();
 	void reverse_u();
 	NurbsSurface reversed_u() const;
+
+	void extend_u(double distance, bool extend_start = true);
+	void extend_v(double distance, bool extend_start = true);
+	NurbsSurface extended_u(double distance, bool extend_start = true) const;
+	NurbsSurface extended_v(double distance, bool extend_start = true) const;
 
 	void evaluate(double u, double v, Point3& p) const;
 	void evaluate_clamped(double u, double v, Point3& p) const;
@@ -66,6 +77,8 @@ public:
 	void project_point_on_surface(const Point3& target, double& u, double& v, Point3& projected) const;
 
 	virtual bool is_trimmed() const;
+	virtual NurbsTrimmedSurface* trimming();
+	virtual const NurbsTrimmedSurface* trimming() const;
 
 private:
 	static int find_knot_span(const std::vector <double>& knots, double u);

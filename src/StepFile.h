@@ -4,18 +4,13 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <map>
 using namespace std;
 
 class NurbsSurface;
 class NurbsSolid;
-class NurbsTrimmedSurface;
+class NurbsCurve;
 class Point3;
-
-namespace StepFile
-{
-//	bool save(const string& filename, const Body& body);
-//	bool load(const string& filename, Body& body);
-}
 
 class StepWriter
 {
@@ -27,10 +22,9 @@ public:
 	bool is_open();
 	void close();
 
-	void write(const NurbsSurface& n);
+	void write(const NurbsSurface& n, bool bWrapInSolid = true);
 	void write(const NurbsSolid& n);
-	void write(const NurbsTrimmedSurface& ts);
-	void write(const vector<NurbsTrimmedSurface>& trimmedSurfaces);
+	void write(const NurbsCurve& n);
 
 private:
 	enum RepresentationKind
@@ -41,21 +35,16 @@ private:
 		REP_MANIFOLD_SURFACE
 	};
 
-	struct KnotAnalysis;
-
 	int next_id();
 	void write_header();
 	void write_footer();
 	int write_surface_entity(const NurbsSurface& n);
+	int write_curve_entity(const NurbsCurve& n);
 	int write_advanced_face(const NurbsSurface& n);
 	int write_trim_loop_bound(const vector<Point3>& loop, bool bHole);
-	int write_advanced_face(const NurbsTrimmedSurface& ts);
 	void write_cartesian_point(const Point3& p);
 	void queue_representation_item(int itemId, RepresentationKind kind);
 	void flush_representation();
-
-	static KnotAnalysis analyze_knots(const vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
-	static vector<double> build_uniform_knots(int degree, int nbCtrlPoints);
 
 	ofstream _f;
 	string _sNameFile;
@@ -72,8 +61,15 @@ public:
 	StepReader();
 	virtual ~StepReader();
 
-	bool read(const string& filename, NurbsSurface& n);
-	bool read(const string& filename, NurbsSolid& n);
+	void open(const string& filename);
+	bool read(NurbsSurface& n);
+	bool read(NurbsSolid& n);
+	bool read(NurbsCurve& n);
+
+private:
+	std::map<int, Point3> _pointsById;
+	std::map<int, std::string> _entities;
+	std::map<int, std::string>::const_iterator _currentEntity;
 };
 
 #endif

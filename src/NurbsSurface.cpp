@@ -6,87 +6,8 @@
 #include <cmath>
 
 #include "NurbsCurve.h"
-
-namespace
-{
-	void basis_function_derivatives(int degree, const std::vector<double>& knots, int span, double u, std::vector<std::vector<double>>& ders)
-	{
-		ders.assign(3, std::vector<double>(degree + 1, 0.));
-		if (degree < 0)
-			return;
-
-		std::vector<std::vector<double>> ndu(degree + 1, std::vector<double>(degree + 1, 0.));
-		std::vector<double> left(degree + 1, 0.);
-		std::vector<double> right(degree + 1, 0.);
-		ndu[0][0] = 1.;
-
-		for (int j = 1; j <= degree; ++j)
-		{
-			left[j] = u - knots[span + 1 - j];
-			right[j] = knots[span + j] - u;
-			double saved = 0.;
-			for (int r = 0; r < j; ++r)
-			{
-				ndu[j][r] = right[r + 1] + left[j - r];
-				double temp = 0.;
-				if (std::fabs(ndu[j][r]) > 1.e-14)
-					temp = ndu[r][j - 1] / ndu[j][r];
-				ndu[r][j] = saved + right[r + 1] * temp;
-				saved = left[j - r] * temp;
-			}
-			ndu[j][j] = saved;
-		}
-
-		for (int j = 0; j <= degree; ++j)
-			ders[0][j] = ndu[j][degree];
-
-		std::vector<std::vector<double>> a(2, std::vector<double>(degree + 1, 0.));
-		for (int r = 0; r <= degree; ++r)
-		{
-			int s1 = 0;
-			int s2 = 1;
-			a[0][0] = 1.;
-
-			for (int k = 1; k <= 2; ++k)
-			{
-				double d = 0.;
-				int rk = r - k;
-				int pk = degree - k;
-
-				if (r >= k)
-				{
-					a[s2][0] = a[s1][0] / ndu[pk + 1][rk];
-					d = a[s2][0] * ndu[rk][pk];
-				}
-
-				int j1 = (rk >= -1) ? 1 : -rk;
-				int j2 = (r - 1 <= pk) ? (k - 1) : (degree - r);
-				for (int j = j1; j <= j2; ++j)
-				{
-					a[s2][j] = (a[s1][j] - a[s1][j - 1]) / ndu[pk + 1][rk + j];
-					d += a[s2][j] * ndu[rk + j][pk];
-				}
-
-				if (r <= pk)
-				{
-					a[s2][k] = -a[s1][k - 1] / ndu[pk + 1][r];
-					d += a[s2][k] * ndu[r][pk];
-				}
-
-				ders[k][r] = d;
-				std::swap(s1, s2);
-			}
-		}
-
-		int r = degree;
-		for (int k = 1; k <= 2; ++k)
-		{
-			for (int j = 0; j <= degree; ++j)
-				ders[k][j] *= r;
-			r *= (degree - k);
-		}
-	}
-}
+#include "NurbsBasis.h"
+#include "NurbsKnots.h"
 
 ///////////////////////////////////////////////////////////////////////////
 NurbsSurface::NurbsSurface() :
@@ -109,6 +30,11 @@ NurbsSurface& NurbsSurface::operator=(const NurbsSurface& other)
 	_iNbPointsV = other._iNbPointsV;
 	_bClosedU = other._bClosedU;
 	_bClosedV = other._bClosedV;
+
+	_tempPointsU.resize(_degreeU + 1);
+	_tempPointsV.resize(_degreeV + 1);
+	_tempWeightsU.resize(_degreeU + 1);
+	_tempWeightsV.resize(_degreeV + 1);
 
 	return *this;
 }
@@ -207,29 +133,7 @@ const std::vector<double>& NurbsSurface::knots_v() const
 
 void NurbsSurface::scale_knots(std::vector<double>& knots)
 {
-	if (knots.empty())
-		return;
-
-	//compute min and max
-	double dMin = knots[0];
-	double dMax = knots[0];
-	for (int i = 1; i < knots.size(); i++)
-	{
-		double v = knots[i];
-		dMin = std::min(dMin, v);
-		dMax = std::max(dMax, v);
-	}
-
-	if (dMax == dMin)
-	{
-		for (int i = 0; i < knots.size(); i++)
-			knots[i] = 0.;
-		return;
-	}
-
-	//apply scale so that 0<= knots <= 1
-	for (int i = 0; i < knots.size(); i++)
-		knots[i] = (knots[i] - dMin) / (dMax - dMin);
+	NurbsKnots::normalize_to_01(knots);
 }
 
 void NurbsSurface::set_weights(const std::vector <double>& weights)
@@ -587,8 +491,8 @@ void NurbsSurface::evaluate_derivatives(double u, double v, Point3& du, Point3& 
 	const int spanV = find_knot_span(_knotsV, v);
 
 	std::vector<std::vector<double>> Nu, Nv;
-	basis_function_derivatives(_degreeU, _knotsU, spanU, u, Nu);
-	basis_function_derivatives(_degreeV, _knotsV, spanV, v, Nv);
+	NurbsBasis::basis_function_derivatives(_degreeU, _knotsU, spanU, u, Nu);
+	NurbsBasis::basis_function_derivatives(_degreeV, _knotsV, spanV, v, Nv);
 
 	Point3 A;
 	Point3 Au;
@@ -775,11 +679,6 @@ void NurbsSurface::project_point_on_surface(const Point3& target, double& u, dou
 	evaluate(u, v, projected);
 }
 
-bool NurbsSurface::is_trimmed() const
-{
-	return false;
-}
-
 void NurbsSurface::reverse_u()
 {
 	const int nU = nb_points_u();
@@ -817,4 +716,272 @@ NurbsSurface NurbsSurface::reversed_u() const
 	NurbsSurface copy = *this;
 	copy.reverse_u();
 	return copy;
+}
+
+
+NurbsCurve NurbsSurface::edge_u0() const
+{
+	NurbsCurve c;
+	c.set_degree(degree_u());
+	c.set_knots(knots_u());
+	std::vector<Point3> vp;
+	std::vector<double> vw;
+	for (int u = 0; u < nb_points_u(); u++)
+	{
+		vp.push_back(points()[u]);
+		vw.push_back(weights()[u]);
+	}
+	c.set_points(vp);
+	c.set_weights(vw);
+	return c;
+}
+
+NurbsCurve NurbsSurface::edge_u1() const
+{
+	NurbsCurve c;
+	c.set_degree(degree_u());
+	c.set_knots(knots_u());
+	std::vector<Point3> vp;
+	std::vector<double> vw;
+	for (int u = 0; u < nb_points_u(); u++)
+	{
+		vp.push_back(points()[u + (nb_points_u() - 1) * nb_points_v()]);
+		vw.push_back(weights()[u + (nb_points_u() - 1) * nb_points_v()]);
+	}
+	c.set_points(vp);
+	c.set_weights(vw);
+	return c;
+}
+
+NurbsCurve NurbsSurface::edge_v0() const
+{
+	NurbsCurve c;
+	c.set_degree(degree_v());
+	c.set_knots(knots_v());
+	std::vector<Point3> vp;
+	std::vector<double> vw;
+	for (int v = 0; v < nb_points_v(); v++)
+	{
+		vp.push_back(points()[v * nb_points_u()]);
+		vw.push_back(weights()[v * nb_points_u()]);
+	}
+	c.set_points(vp);
+	c.set_weights(vw);
+	return c;
+}
+
+NurbsCurve NurbsSurface::edge_v1() const
+{
+	NurbsCurve c;
+	c.set_degree(degree_v());
+	c.set_knots(knots_v());
+	std::vector<Point3> vp;
+	std::vector<double> vw;
+	for (int v = 0; v < nb_points_v(); v++)
+	{
+		vp.push_back(points()[v * nb_points_u() + nb_points_u() - 1]);
+		vw.push_back(weights()[v * nb_points_u() + nb_points_u() - 1]);
+	}
+	c.set_points(vp);
+	c.set_weights(vw);
+	return c;
+}
+
+bool NurbsSurface::is_trimmed() const
+{
+	return false;
+}
+
+NurbsTrimmedSurface* NurbsSurface::trimming()
+{
+	return 0;
+}
+
+const NurbsTrimmedSurface* NurbsSurface::trimming() const
+{
+	return 0;
+}
+
+void NurbsSurface::extend_u(double distance, bool extend_start)
+{
+	NurbsSurface extended = extended_u(distance, extend_start);
+	*this = extended;
+}
+
+void NurbsSurface::extend_v(double distance, bool extend_start)
+{
+	NurbsSurface extended = extended_v(distance, extend_start);
+	*this = extended;
+}
+
+NurbsSurface NurbsSurface::extended_u(double distance, bool extend_start) const
+{
+	NurbsSurface result = *this;
+
+	if (nb_points_u() < 2) return result;
+
+	// Simple extension by extrapolating the boundary curves
+	std::vector<Point3> newPoints = points();
+	std::vector<double> newWeights = weights();
+	std::vector<double> newKnotsU = knots_u();
+
+	int nU = nb_points_u();
+	int nV = nb_points_v();
+
+	// Add one row of control points
+	int newNU = nU + 1;
+	newPoints.resize(newNU * nV);
+	newWeights.resize(newNU * nV);
+
+	// Copy existing points and weights
+	for (int v = 0; v < nV; ++v) {
+		for (int u = 0; u < nU; ++u) {
+			int oldIdx = u + v * nU;
+			int newIdx = u + v * newNU;
+			newPoints[newIdx] = points()[oldIdx];
+			newWeights[newIdx] = weights()[oldIdx];
+		}
+	}
+
+	// Extrapolate the boundary
+	int boundaryU = extend_start ? 0 : nU - 1;
+	int extrapolateU = extend_start ? -1 : nU;
+
+	for (int v = 0; v < nV; ++v) {
+		int idx1 = boundaryU + v * nU;
+		int idx2 = boundaryU + 1 + v * nU; // Next point along U
+		if (!extend_start) {
+			idx1 = (nU - 1) + v * nU;
+			idx2 = (nU - 2) + v * nU;
+		}
+
+		Point3 p1 = points()[idx1];
+		Point3 p2 = points()[idx2];
+		Point3 dir = p2 - p1;
+		if (dir.norm_square() > 1e-12) {
+			dir.normalize();
+		} else {
+			// If boundary is degenerate, use V direction
+			if (v > 0) {
+				int idxV1 = boundaryU + (v-1) * nU;
+				int idxV2 = boundaryU + v * nU;
+				dir = points()[idxV2] - points()[idxV1];
+				if (dir.norm_square() > 1e-12) {
+					dir.normalize();
+				} else {
+					dir = Point3(1, 0, 0); // Fallback
+				}
+			} else {
+				dir = Point3(1, 0, 0); // Fallback
+			}
+		}
+
+		Point3 newPoint = p1 + dir * distance;
+		int newIdx = extrapolateU + v * newNU;
+		newPoints[newIdx] = newPoint;
+		newWeights[newIdx] = weights()[idx1]; // Use same weight
+	}
+
+	// Extend knots
+	if (!extend_start) {
+		// Extend at end
+		double lastKnot = knots_u().back();
+		newKnotsU.push_back(lastKnot + 1.0);
+	} else {
+		// Extend at start
+		double firstKnot = knots_u().front();
+		newKnotsU.insert(newKnotsU.begin(), firstKnot - 1.0);
+	}
+
+	result.set_points(newPoints, newNU, nV);
+	result.set_weights(newWeights);
+	result.set_knots_u(newKnotsU);
+
+	return result;
+}
+
+NurbsSurface NurbsSurface::extended_v(double distance, bool extend_start) const
+{
+	NurbsSurface result = *this;
+
+	if (nb_points_v() < 2) return result;
+
+	// Similar to extend_u but for V direction
+	std::vector<Point3> newPoints = points();
+	std::vector<double> newWeights = weights();
+	std::vector<double> newKnotsV = knots_v();
+
+	int nU = nb_points_u();
+	int nV = nb_points_v();
+
+	// Add one column of control points
+	int newNV = nV + 1;
+	newPoints.resize(nU * newNV);
+	newWeights.resize(nU * newNV);
+
+	// Copy existing points and weights
+	for (int v = 0; v < nV; ++v) {
+		for (int u = 0; u < nU; ++u) {
+			int oldIdx = u + v * nU;
+			int newIdx = u + v * nU; // Same U index, V index unchanged
+			newPoints[newIdx] = points()[oldIdx];
+			newWeights[newIdx] = weights()[oldIdx];
+		}
+	}
+
+	// Extrapolate the boundary
+	int boundaryV = extend_start ? 0 : nV - 1;
+	int extrapolateV = extend_start ? -1 : nV;
+
+	for (int u = 0; u < nU; ++u) {
+		int idx1 = u + boundaryV * nU;
+		int idx2 = u + (boundaryV + 1) * nU; // Next point along V
+		if (!extend_start) {
+			idx1 = u + (nV - 1) * nU;
+			idx2 = u + (nV - 2) * nU;
+		}
+
+		Point3 p1 = points()[idx1];
+		Point3 p2 = points()[idx2];
+		Point3 dir = p2 - p1;
+		if (dir.norm_square() > 1e-12) {
+			dir.normalize();
+		} else {
+			// If boundary is degenerate, use U direction
+			if (u > 0) {
+				int idxU1 = (u-1) + boundaryV * nU;
+				int idxU2 = u + boundaryV * nU;
+				dir = points()[idxU2] - points()[idxU1];
+				if (dir.norm_square() > 1e-12) {
+					dir.normalize();
+				} else {
+					dir = Point3(0, 1, 0); // Fallback
+				}
+			} else {
+				dir = Point3(0, 1, 0); // Fallback
+			}
+		}
+
+		Point3 newPoint = p1 + dir * distance;
+		int newIdx = u + extrapolateV * nU;
+		newPoints[newIdx] = newPoint;
+		newWeights[newIdx] = weights()[idx1]; // Use same weight
+	}
+
+	// Extend knots
+	if (!extend_start) {
+		// Extend at end
+		double lastKnot = knots_v().back();
+		newKnotsV.push_back(lastKnot + 1.0);
+	} else {
+		// Extend at start
+		double firstKnot = knots_v().front();
+		newKnotsV.insert(newKnotsV.begin(), firstKnot - 1.0);
+	}
+
+	result.set_points(newPoints, nU, newNV);
+	result.set_weights(newWeights);
+	result.set_knots_v(newKnotsV);
+
+	return result;
 }

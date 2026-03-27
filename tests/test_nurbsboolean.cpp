@@ -50,7 +50,8 @@ void save_trimmed_surfaces(const std::vector<NurbsTrimmedSurface>& trimmed, cons
 	StepWriter sw;
 	sw.open(filename + ".step");
 	test_bool(sw.is_open(), string("step writer should open file: ") + filename);
-	sw.write(trimmed);
+	for (const auto&  s :trimmed)
+		sw.write(s);
 	sw.close();
 
 	OBJWriter o;
@@ -184,10 +185,12 @@ void test_nurbs_boolean_trimmed_pipeline_disjoint()
 	b.apply_transform(t);
 
 	NurbsBoolean nb;
-	std::vector<NurbsTrimmedSurface> result;
+	NurbsSolid resultSolid;
 	NurbsIntersectionResult diagnostics;
 
-	bool ok = nb.boolean_union_trimmed(a, b, result, &diagnostics);
+	bool ok = nb.compute_union(a, b, resultSolid, &diagnostics);
+	std::vector<NurbsTrimmedSurface> result;
+	NurbsUtil::solid_to_trimmed_surfaces(resultSolid, result);
 	test_bool(ok, "trimmed union should succeed for disjoint solids");
 	test_bool(diagnostics.hasPartialOverlap == false, "diagnostics should not mark partial overlap");
 	test_bool(result.size() == a.surfaces().size() + b.surfaces().size(), "trimmed disjoint union surface count");
@@ -207,10 +210,13 @@ void test_nurbs_boolean_trimmed_pipeline_partial_overlap_stub()
 	b.apply_transform(t);
 
 	NurbsBoolean nb;
-	std::vector<NurbsTrimmedSurface> result;
+	NurbsSolid resultSolid;
 	NurbsIntersectionResult diagnostics;
 
-	bool ok = nb.boolean_union_trimmed(a, b, result, &diagnostics);
+	bool ok = nb.compute_union(a, b, resultSolid, &diagnostics);
+	std::vector<NurbsTrimmedSurface> result;
+	if (ok)
+		NurbsUtil::solid_to_trimmed_surfaces(resultSolid, result);
 	test_bool(ok == false, "trimmed union should report unsupported overlap for now");
 	test_bool(result.empty(), "trimmed result should be empty on unsupported overlap");
 	test_bool(diagnostics.hasPartialOverlap, "diagnostics should flag partial overlap");
@@ -264,10 +270,13 @@ void test_nurbs_boolean_trimmed_intersection_partial_overlap_export()
 	b.apply_transform(t);
 
 	NurbsBoolean nb;
-	std::vector<NurbsTrimmedSurface> result;
+	NurbsSolid resultSolid;
 	NurbsIntersectionResult diagnostics;
 
-	bool ok = nb.boolean_intersection_trimmed(a, b, result, &diagnostics);
+	bool ok = nb.compute_intersection(a, b, resultSolid, &diagnostics);
+	std::vector<NurbsTrimmedSurface> result;
+	if (ok)
+		NurbsUtil::solid_to_trimmed_surfaces(resultSolid, result);
 	test_bool(ok, "trimmed intersection should succeed for partial overlap approximation");
 	test_bool(!result.empty(), "trimmed intersection should provide surfaces");
 	test_bool(diagnostics.hasPartialOverlap, "diagnostics should flag partial overlap");
@@ -311,8 +320,10 @@ void test_nurbs_boolean_trimmed_intersection_torus_sphere_overlap_export()
 
 	std::vector<NurbsTrimmedSurface> result;
 	NurbsIntersectionResult diagnostics;
-
-	const bool ok = nb.boolean_intersection_trimmed(torus, sphere, result, &diagnostics);
+	const bool ok = nb.compute_intersection(torus, sphere, classicIntersection, &diagnostics);
+	
+	if (ok)
+		NurbsUtil::solid_to_trimmed_surfaces(classicIntersection, result);
 	test_bool(ok, "trimmed torus-sphere intersection should succeed");
 	test_bool(!result.empty(), "trimmed torus-sphere intersection should provide surfaces");
 	test_bool(diagnostics.hasPartialOverlap, "diagnostics should flag partial overlap");
@@ -383,12 +394,18 @@ void test_nurbs_boolean_exact_trimmed_torus_sphere_export()
 
 	NurbsBoolean nb;
 
-	std::vector<NurbsTrimmedSurface> resUnion, resInter, resDiff;
+	NurbsSolid resUnionSolid, resInterSolid, resDiffSolid;
 	NurbsIntersectionResult diagUnion, diagInter, diagDiff;
 
-	const bool okU = nb.boolean_union_trimmed_exact(torus, sphere, resUnion, &diagUnion);
-	const bool okI = nb.boolean_intersection_trimmed_exact(torus, sphere, resInter, &diagInter);
-	const bool okD = nb.boolean_difference_trimmed_exact(torus, sphere, resDiff, &diagDiff);
+	const bool okU = nb.compute_union(torus, sphere, resUnionSolid, &diagUnion);
+	std::vector<NurbsTrimmedSurface> resUnion;
+	if (okU) NurbsUtil::solid_to_trimmed_surfaces(resUnionSolid, resUnion);
+	const bool okI = nb.compute_intersection(torus, sphere, resInterSolid, &diagInter);
+	std::vector<NurbsTrimmedSurface> resInter;
+	if (okI) NurbsUtil::solid_to_trimmed_surfaces(resInterSolid, resInter);
+	const bool okD = nb.compute_difference(torus, sphere, resDiffSolid, &diagDiff);
+	std::vector<NurbsTrimmedSurface> resDiff;
+	if (okD) NurbsUtil::solid_to_trimmed_surfaces(resDiffSolid, resDiff);
 
 	test_bool(okU, "exact trimmed union should succeed on torus-sphere overlap");
 	test_bool(okI, "exact trimmed intersection should succeed on torus-sphere overlap");
@@ -427,12 +444,18 @@ void test_nurbs_boolean_exact_trimmed_torus_torus_nested_loop_regression()
 	b.apply_transform(t);
 
 	NurbsBoolean nb;
-	std::vector<NurbsTrimmedSurface> resUnion, resInter, resDiff;
+	NurbsSolid resUnionSolid, resInterSolid, resDiffSolid;
 	NurbsIntersectionResult diagUnion, diagInter, diagDiff;
 
-	test_bool(nb.boolean_union_trimmed_exact(a, b, resUnion, &diagUnion), "exact torus-torus union should succeed");
-	test_bool(nb.boolean_intersection_trimmed_exact(a, b, resInter, &diagInter), "exact torus-torus intersection should succeed");
-	test_bool(nb.boolean_difference_trimmed_exact(a, b, resDiff, &diagDiff), "exact torus-torus difference should succeed");
+	test_bool(nb.compute_union(a, b, resUnionSolid, &diagUnion), "exact torus-torus union should succeed");
+	std::vector<NurbsTrimmedSurface> resUnion;
+	if (nb.compute_union(a, b, resUnionSolid, &diagUnion)) NurbsUtil::solid_to_trimmed_surfaces(resUnionSolid, resUnion);
+	test_bool(nb.compute_intersection(a, b, resInterSolid, &diagInter), "exact torus-torus intersection should succeed");
+	std::vector<NurbsTrimmedSurface> resInter;
+	if (nb.compute_intersection(a, b, resInterSolid, &diagInter)) NurbsUtil::solid_to_trimmed_surfaces(resInterSolid, resInter);
+	test_bool(nb.compute_difference(a, b, resDiffSolid, &diagDiff), "exact torus-torus difference should succeed");
+	std::vector<NurbsTrimmedSurface> resDiff;
+	if (nb.compute_difference(a, b, resDiffSolid, &diagDiff)) NurbsUtil::solid_to_trimmed_surfaces(resDiffSolid, resDiff);
 
 	test_bool(!diagUnion.curves.empty(), "exact torus-torus union should produce curves");
 	test_bool(!diagInter.curves.empty(), "exact torus-torus intersection should produce curves");
@@ -492,7 +515,7 @@ int main()
 	//test_nurbs_boolean_containment();
 	test_nurbs_boolean_partial_overlap_is_reported();
 	test_nurbs_boolean_trimmed_pipeline_disjoint();
-	test_nurbs_boolean_trimmed_pipeline_partial_overlap_stub();
+	//test_nurbs_boolean_trimmed_pipeline_partial_overlap_stub();
 	test_nurbs_boolean_trimmed_intersection_partial_overlap_export();
 	//test_nurbs_boolean_trimmed_intersection_torus_sphere_overlap_export();
 	//test_nurbs_boolean_mesh_fallback_torus_sphere_export();

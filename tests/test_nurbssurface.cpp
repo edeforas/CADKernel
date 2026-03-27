@@ -636,6 +636,41 @@ void test_nurbssurface_deg3_insert_knot()
 	sw.write(ndeg_u3v3_knot);
 }
 ///////////////////////////////////////////////////////////////////////////
+void test_nurbssurface_assignment_mixed_degrees()
+{
+	cout << endl << "test_nurbssurface_assignment_mixed_degrees" << endl;
+
+	NurbsSurface src;
+	src.set_degree(2, 1);
+	src.set_knots_u({ 0., 0., 0., 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1., 1., 1. });
+	src.set_knots_v({ 0., 0., 1., 1. });
+	src.set_weights({
+		1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,
+		1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.,1. / sqrt(2.),1.
+	});
+	src.set_points({
+		Point3(1.,0.,0.),Point3(1.,1.,0.),Point3(0.,1.,0.),
+		Point3(-1.,1.,0.),Point3(-1.,0.,0.),Point3(-1.,-1.,0.),
+		Point3(0.,-1.,0.),Point3(1.,-1.,0.),Point3(1.,0.,0.),
+		Point3(1.,0.,2.),Point3(1.,1.,2.),Point3(0.,1.,2.),
+		Point3(-1.,1.,2.),Point3(-1.,0.,2.),Point3(-1.,-1.,2.),
+		Point3(0.,-1.,2.),Point3(1.,-1.,2.),Point3(1.,0.,2.)
+	}, 9, 2);
+
+	NurbsSurface dst;
+	dst.set_degree(1, 3);
+	dst = src;
+
+	for (double u = 0.05; u <= 0.95; u += 0.15)
+		for (double v = 0.05; v <= 0.95; v += 0.15)
+		{
+			Point3 pSrc, pDst;
+			src.evaluate(u, v, pSrc);
+			dst.evaluate(u, v, pDst);
+			test_near((pSrc - pDst).norm(), 0., 1.e-10);
+		}
+}
+///////////////////////////////////////////////////////////////////////////
 int main()
 {
 	test_nurbssurface_square();
@@ -655,6 +690,7 @@ int main()
 	test_nurbssurface_deg1_insert_knot();
 	test_nurbssurface_deg2_insert_knot();
 	test_nurbssurface_deg3_insert_knot();
+	test_nurbssurface_assignment_mixed_degrees();
 
 	cout << "Test Finished.";
 	return 0;

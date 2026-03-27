@@ -30,6 +30,8 @@ public:
 	bool create_fillet_on_solid(const NurbsSolid& solid, int iSurfaceA, SurfaceEdge eA, int iSurfaceB, SurfaceEdge eB, double dRadius, NurbsSurface& out) const;
 	bool create_chamfer_on_solid_auto(const NurbsSolid& solid, int iSurfaceA, int iSurfaceB, double dOffset1, double dOffset2, NurbsSurface& out) const;
 	bool create_fillet_on_solid_auto(const NurbsSolid& solid, int iSurfaceA, int iSurfaceB, double dRadius, NurbsSurface& out) const;
+
+	bool create_fillet_or_chamfer_on_solid(const NurbsSolid& solid, int iSurfaceA, int iSurfaceB, bool isFillet, double size, NurbsSurface& out) const;
 };
 
 #endif

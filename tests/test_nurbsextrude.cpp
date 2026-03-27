@@ -2,6 +2,7 @@
 
 #include "NurbsCurve.h"
 #include "NurbsSurface.h"
+#include "NurbsSolid.h"
 #include "NurbsUtil.h"
 #include "NurbsFactory.h"
 
@@ -76,10 +77,56 @@ void test_nurbsextrude_random_deg2()
 	sw.write(ns);
 }
 ///////////////////////////////////////////////////////////////////////////
+void test_nurbsextrude_face()
+{
+	cout << endl << "test_nurbsextrude_face" << endl;
+
+	// Create a NURBS cube
+	NurbsSolid cube;
+	NurbsFactory::create_box(10., 10., 10., cube);
+
+	int originalSurfaceCount = cube.surfaces().size();
+
+	// Compute extrusion direction using face normal at center
+	const auto& surfaces = cube.surfaces();
+	Point3 normal;
+	if (!surfaces[0].normal(0.5, 0.5, normal)) {
+		cout << "Failed to compute normal" << endl;
+		return;
+	}
+	Point3 direction = normal * 5.0;
+
+	// Extrude the top face (index 0)
+	NurbsExtrude ne;
+	bool success = ne.extrude_face(cube, 0, direction);
+
+	if (!success) {
+		cout << "Failed to extrude face" << endl;
+		return;
+	}
+
+	if (cube.surfaces().size() != originalSurfaceCount + 1) {
+		cout << "Surface count not increased correctly" << endl;
+		return;
+	}
+
+	cout << "Face extrusion test passed" << endl;
+
+	// Save the result
+	Mesh m;
+	NurbsUtil::to_mesh(cube, m, 16);
+	OBJFile::save("test_nurbsextrude_face.obj", m);
+
+	StepWriter sw;
+	sw.open("test_nurbsextrude_face.step");
+	sw.write(cube);
+}
+///////////////////////////////////////////////////////////////////////////
 int main()
 {
 	test_nurbsextrude_cylinder();
 	test_nurbsextrude_random_deg2();
+	test_nurbsextrude_face();
 
 	cout << "Test Finished.";
 	return 0;

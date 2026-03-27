@@ -4,6 +4,7 @@
 #include "NurbsCurve.h"
 #include "NurbsSurface.h"
 #include "LinearAlgebra.h"
+#include "NurbsBasis.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,31 +39,6 @@ int find_span(int nCtrl, int degree, double u, const std::vector<double>& knots)
 	return mid;
 }
 
-void basis_funs(int span, double u, int degree, const std::vector<double>& knots, std::vector<double>& N)
-{
-	N.assign(degree + 1, 0.);
-	std::vector<double> left(degree + 1, 0.);
-	std::vector<double> right(degree + 1, 0.);
-	N[0] = 1.;
-
-	for (int j = 1; j <= degree; ++j)
-	{
-		left[j] = u - knots[span + 1 - j];
-		right[j] = knots[span + j] - u;
-		double saved = 0.;
-		for (int r = 0; r < j; ++r)
-		{
-			const double den = right[r + 1] + left[j - r];
-			double temp = 0.;
-			if (std::fabs(den) > 1.e-14)
-				temp = N[r] / den;
-			N[r] = saved + right[r + 1] * temp;
-			saved = left[j - r] * temp;
-		}
-		N[j] = saved;
-	}
-}
-
 std::vector<double> build_basis_matrix(int nSamples, int nCtrl, int degree, const std::vector<double>& knots)
 {
 	std::vector<double> A(std::max(0, nSamples * nCtrl), 0.);
@@ -77,7 +53,7 @@ std::vector<double> build_basis_matrix(int nSamples, int nCtrl, int degree, cons
 			u = (double)s / (double)(nSamples - 1);
 
 		const int span = find_span(nCtrl, degree, u, knots);
-		basis_funs(span, u, degree, knots, N);
+		NurbsBasis::basis_functions(span, u, degree, knots, N);
 		const int first = span - degree;
 		for (int j = 0; j <= degree; ++j)
 		{
@@ -280,15 +256,15 @@ bool NurbsFitting::fit_surface_least_squares(
 		rhs.assign(iNbCtrlV, 0.);
 		for (int j = 0; j < iNbCtrlV; ++j) rhs[j] = tmpx[j * iNbCtrlU + i];
 		if (!solve_linear_system(Mv, rhs, sol, iNbCtrlV)) return false;
-		for (int j = 0; j < iNbCtrlV; ++j) ctrl[j * iNbCtrlU + i].x() = sol[j];
+		for (int j = 0; j < iNbCtrlV; ++j) ctrl[i * iNbCtrlV + j].x() = sol[j];
 
 		for (int j = 0; j < iNbCtrlV; ++j) rhs[j] = tmpy[j * iNbCtrlU + i];
 		if (!solve_linear_system(Mv, rhs, sol, iNbCtrlV)) return false;
-		for (int j = 0; j < iNbCtrlV; ++j) ctrl[j * iNbCtrlU + i].y() = sol[j];
+		for (int j = 0; j < iNbCtrlV; ++j) ctrl[i * iNbCtrlV + j].y() = sol[j];
 
 		for (int j = 0; j < iNbCtrlV; ++j) rhs[j] = tmpz[j * iNbCtrlU + i];
 		if (!solve_linear_system(Mv, rhs, sol, iNbCtrlV)) return false;
-		for (int j = 0; j < iNbCtrlV; ++j) ctrl[j * iNbCtrlU + i].z() = sol[j];
+		for (int j = 0; j < iNbCtrlV; ++j) ctrl[i * iNbCtrlV + j].z() = sol[j];
 	}
 
 	std::vector<double> weights(iNbCtrlU * iNbCtrlV, 1.);

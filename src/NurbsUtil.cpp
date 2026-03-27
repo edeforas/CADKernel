@@ -5,56 +5,134 @@
 #include "NurbsSolid.h"
 #include "NurbsTrimmedSurface.h"
 #include "NurbsFactory.h"
+#include "BezierSurface.h"
 #include "Mesh.h"
+#include "NurbsKnots.h"
 
 #include <cmath>
+#include <algorithm>
 
 namespace
 {
-bool point_in_uv_loop(const std::vector<NurbsUvPoint>& loop, double u, double v)
-{
-	if (loop.size() < 3)
-		return false;
-
-	bool inside = false;
-	for (int i = 0, j = (int)loop.size() - 1; i < (int)loop.size(); j = i++)
+	bool point_in_uv_loop(const std::vector<NurbsUvPoint>& loop, double u, double v)
 	{
-		const double xi = loop[i].u;
-		const double yi = loop[i].v;
-		const double xj = loop[j].u;
-		const double yj = loop[j].v;
+		if (loop.size() < 3)
+			return false;
 
-		const bool intersect = ((yi > v) != (yj > v)) &&
-			(u < (xj - xi) * (v - yi) / ((yj - yi) + 1.e-20) + xi);
+		bool inside = false;
+		for (int i = 0, j = (int)loop.size() - 1; i < (int)loop.size(); j = i++)
+		{
+			const double xi = loop[i].u;
+			const double yi = loop[i].v;
+			const double xj = loop[j].u;
+			const double yj = loop[j].v;
 
-		if (intersect)
-			inside = !inside;
+			const bool intersect = ((yi > v) != (yj > v)) &&
+				(u < (xj - xi) * (v - yi) / ((yj - yi) + 1.e-20) + xi);
+
+			if (intersect)
+				inside = !inside;
+		}
+
+		return inside;
 	}
 
-	return inside;
-}
-
-bool point_inside_trims(const NurbsTrimmedSurface& ts, double u, double v)
-{
-	if (!ts.is_trimmed())
-		return true;
-
-	bool insideOuter = false;
-	bool insideHole = false;
-
-	for (const auto& loop : ts.trim_loops())
+	bool point_inside_trims(const NurbsTrimmedSurface& ts, double u, double v)
 	{
-		if (!point_in_uv_loop(loop.points, u, v))
-			continue;
+		if (!ts.is_trimmed())
+			return true;
 
-		if (loop.hole)
-			insideHole = true;
-		else
-			insideOuter = true;
+		bool insideOuter = false;
+		bool insideHole = false;
+
+		for (const auto& loop : ts.trim_loops())
+		{
+			if (!point_in_uv_loop(loop.points, u, v))
+				continue;
+
+			if (loop.hole)
+				insideHole = true;
+			else
+				insideOuter = true;
+		}
+
+		return insideOuter && !insideHole;
 	}
 
-	return insideOuter && !insideHole;
-}
+	static BezierSurface extract_bezier_patch(const NurbsSurface& n, size_t uSpan, size_t vSpan,
+	                                         const NurbsUtil::KnotAnalysis& uKnots, const NurbsUtil::KnotAnalysis& vKnots);
+	static int find_span_start_index(const std::vector<double>& knots, double knotValue, int degree);
+
+	// Helper function to extract a single Bezier patch from a NURBS surface span
+	static BezierSurface extract_bezier_patch(const NurbsSurface& n, size_t uSpan, size_t vSpan,
+	                                         const NurbsUtil::KnotAnalysis& uKnots, const NurbsUtil::KnotAnalysis& vKnots)
+	{
+		BezierSurface patch;
+
+		// Create a copy of the surface to work with
+		NurbsSurface workSurface = n;
+
+		// Insert knots to achieve Bezier multiplicity for this span
+		// For Bezier form, we need multiplicity = degree + 1 at each knot
+		int bezierMultiplicityU = n.degree_u() + 1;
+		int bezierMultiplicityV = n.degree_v() + 1;
+
+		// Insert knots at the span boundaries to achieve Bezier multiplicity
+		double uStart = uKnots.unique_knots[uSpan];
+		double uEnd = uKnots.unique_knots[uSpan + 1];
+		double vStart = vKnots.unique_knots[vSpan];
+		double vEnd = vKnots.unique_knots[vSpan + 1];
+
+		// Insert knots to achieve Bezier multiplicity at boundaries
+		for (int i = uKnots.multiplicities[uSpan]; i < bezierMultiplicityU; ++i) {
+			workSurface.insert_knot_u(uStart);
+		}
+		for (int i = uKnots.multiplicities[uSpan + 1]; i < bezierMultiplicityU; ++i) {
+			workSurface.insert_knot_u(uEnd);
+		}
+
+		for (int i = vKnots.multiplicities[vSpan]; i < bezierMultiplicityV; ++i) {
+			workSurface.insert_knot_v(vStart);
+		}
+		for (int i = vKnots.multiplicities[vSpan + 1]; i < bezierMultiplicityV; ++i) {
+			workSurface.insert_knot_v(vEnd);
+		}
+
+		// Find the control points for this span
+		// After knot insertion, the control points for the span are consecutive
+		int uStartIndex = find_span_start_index(workSurface.knots_u(), uStart, n.degree_u());
+		int vStartIndex = find_span_start_index(workSurface.knots_v(), vStart, n.degree_v());
+
+		// Extract (degreeU+1) x (degreeV+1) control points
+		std::vector<Point3> bezierPoints;
+		for (int i = 0; i <= n.degree_u(); ++i) {
+			for (int j = 0; j <= n.degree_v(); ++j) {
+				int pointIndex = (uStartIndex + i) * workSurface.nb_points_v() + (vStartIndex + j);
+				if (pointIndex < (int)workSurface.points().size()) {
+					bezierPoints.push_back(workSurface.points()[pointIndex]);
+				}
+			}
+		}
+
+		// Create the Bezier patch
+		if ((int)bezierPoints.size() == (n.degree_u() + 1) * (n.degree_v() + 1)) {
+			patch.set_degree(n.degree_u(), n.degree_v());
+			patch.set_control_points(bezierPoints, n.degree_u() + 1, n.degree_v() + 1);
+		}
+
+		return patch;
+	}
+
+	// Helper function to find the starting index of a knot span
+	static int find_span_start_index(const std::vector<double>& knots, double knotValue, int degree)
+	{
+		for (size_t i = degree; i < knots.size() - degree; ++i) {
+			if (std::abs(knots[i] - knotValue) < 1e-10) {
+				return i - degree;
+			}
+		}
+		return 0; // Default to start
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -81,7 +159,7 @@ void NurbsUtil::create_curve_from_points(const std::vector<Point3>& points, int 
 	n.set_equals_weights();
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsUtil::create_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n)
+void NurbsUtil::create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n)
 {
 	n.clear();
 
@@ -107,7 +185,7 @@ void NurbsUtil::create_from_z(const std::vector<double>& z, int iSizeX, int iSiz
 	n.set_equals_weights();
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsUtil::create_from_mesh(const Mesh& m, NurbsSolid& n)
+void NurbsUtil::create_solid_from_mesh(const Mesh& m, NurbsSolid& n)
 {
 	n.clear();
 	for (int i = 0; i < m.nb_triangles(); i++)
@@ -252,56 +330,125 @@ void NurbsUtil::to_mesh(const std::vector<NurbsTrimmedSurface>& trimmedSurfaces,
 		to_mesh(trimmedSurfaces[i], m, iNbSegments, false);
 }
 ///////////////////////////////////////////////////////////////////////////
-double NurbsUtil::sanitize_weight(double value,double kEpsilonWeight )
+double NurbsUtil::sanitize_weight(double value, double kEpsilonWeight)
 {
-    if (!std::isfinite(value))
-        return 1.;
+	if (!std::isfinite(value))
+		return 1.;
 
-    value = std::fabs(value);
-    if (value < kEpsilonWeight)
-        return kEpsilonWeight;
+	value = std::fabs(value);
+	if (value < kEpsilonWeight)
+		return kEpsilonWeight;
 
-    return value;
+	return value;
 }
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_safe_weights(const std::vector<double>& weights, int expectedSize)
 {
-    std::vector<double> safeWeights;
-    safeWeights.reserve(expectedSize);
+	std::vector<double> safeWeights;
+	safeWeights.reserve(expectedSize);
 
-    if ((int)weights.size() != expectedSize)
-    {
-        safeWeights.assign(expectedSize, 1.);
-        return safeWeights;
-    }
+	if ((int)weights.size() != expectedSize)
+	{
+		safeWeights.assign(expectedSize, 1.);
+		return safeWeights;
+	}
 
-    for (int i = 0; i < expectedSize; ++i)
-        safeWeights.push_back(NurbsUtil::sanitize_weight(weights[i]));
+	for (int i = 0; i < expectedSize; ++i)
+		safeWeights.push_back(NurbsUtil::sanitize_weight(weights[i]));
 
-    return safeWeights;
+	return safeWeights;
 }
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_segmented_quadratic_knots(int nbSegments)
 {
-	std::vector<double> knots;
-	if (nbSegments <= 0)
-		return knots;
-
-	knots.reserve(2 * nbSegments + 4);
-	knots.push_back(0.);
-	knots.push_back(0.);
-	knots.push_back(0.);
-
-	for (int i = 1; i < nbSegments; ++i)
-	{
-		const double t = (double)i / (double)nbSegments;
-		knots.push_back(t);
-		knots.push_back(t);
-	}
-
-	knots.push_back(1.);
-	knots.push_back(1.);
-	knots.push_back(1.);
-	return knots;
+	return NurbsKnots::build_segmented_quadratic_knots(nbSegments);
 }
 ///////////////////////////////////////////////////////////////////////////
+std::vector<double> NurbsUtil::build_uniform_knots(int degree, int nbCtrlPoints)
+{
+	return NurbsKnots::build_uniform_knots(degree, nbCtrlPoints);
+}
+
+
+
+NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints)
+{
+	KnotAnalysis result;
+
+	std::vector<double> work = knots;
+	const int expectedCount = expectedCtrlPoints + expectedDegree + 1;
+	if (expectedCtrlPoints <= 0)
+		return result;
+
+	if ((int)work.size() != expectedCount)
+		work = NurbsUtil::build_uniform_knots(expectedDegree, expectedCtrlPoints);
+
+	if (work.empty())
+		return result;
+
+	for (auto& k : work)
+	{
+		if (!std::isfinite(k))
+			k = 0;
+	}
+
+	std::sort(work.begin(), work.end());
+
+	const double eps = 1.e-9;
+	double current = work[0];
+	int count = 1;
+	for (int i = 1; i < (int)work.size(); ++i)
+	{
+		if (std::fabs(work[i] - current) <= eps)
+		{
+			count++;
+		}
+		else
+		{
+			result.unique_knots.push_back(current);
+			result.multiplicities.push_back(count);
+			current = work[i];
+			count = 1;
+		}
+	}
+
+	result.unique_knots.push_back(current);
+	result.multiplicities.push_back(count);
+
+	return result;
+}
+
+void NurbsUtil::to_bezier_patches(const NurbsSurface& n, std::vector<BezierSurface>& patches)
+{
+	patches.clear();
+
+	// Analyze knot vectors to find spans
+	KnotAnalysis uKnots = analyze_knots(n.knots_u(), n.degree_u(), n.nb_points_u());
+	KnotAnalysis vKnots = analyze_knots(n.knots_v(), n.degree_v(), n.nb_points_v());
+
+	if (uKnots.unique_knots.size() < 2 || vKnots.unique_knots.size() < 2) {
+		return; // Not enough spans
+	}
+
+	// For each span [u_i, u_{i+1}] x [v_j, v_{j+1}], create a Bezier patch
+	for (size_t ui = 0; ui < uKnots.unique_knots.size() - 1; ++ui) {
+		for (size_t vi = 0; vi < vKnots.unique_knots.size() - 1; ++vi) {
+			BezierSurface patch = extract_bezier_patch(n, ui, vi, uKnots, vKnots);
+			if (patch.is_valid()) {
+				patches.push_back(patch);
+			}
+		}
+	}
+}
+
+void NurbsUtil::solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<NurbsTrimmedSurface>& dst)
+{
+	dst.clear();
+	dst.reserve(src.surfaces().size());
+
+	for (const auto& s : src.surfaces())
+	{
+		NurbsTrimmedSurface ts(s);
+		dst.push_back(ts);
+	}
+}

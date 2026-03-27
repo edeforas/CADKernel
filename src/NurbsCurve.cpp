@@ -4,101 +4,8 @@
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
-	void basis_function_derivatives(int degree, const std::vector<double>& knots, int span, double u, double ders[3][32])
-	{
-		for (int k = 0; k < 3; ++k)
-			for (int j = 0; j < 32; ++j)
-				ders[k][j] = 0.;
-
-		if (degree < 0)
-			return;
-
-		std::vector<std::vector<double>> ndu(degree + 1, std::vector<double>(degree + 1, 0.));
-		std::vector<double> left(degree + 1, 0.);
-		std::vector<double> right(degree + 1, 0.);
-		ndu[0][0] = 1.;
-
-		for (int j = 1; j <= degree; ++j)
-		{
-			left[j] = u - knots[span + 1 - j];
-			right[j] = knots[span + j] - u;
-			double saved = 0.;
-
-			for (int r = 0; r < j; ++r)
-			{
-				ndu[j][r] = right[r + 1] + left[j - r];
-				double temp = 0.;
-				if (std::fabs(ndu[j][r]) > 1.e-14)
-					temp = ndu[r][j - 1] / ndu[j][r];
-				ndu[r][j] = saved + right[r + 1] * temp;
-				saved = left[j - r] * temp;
-			}
-
-			ndu[j][j] = saved;
-		}
-
-		for (int j = 0; j <= degree; ++j)
-			ders[0][j] = ndu[j][degree];
-
-		std::vector<std::vector<double>> a(2, std::vector<double>(degree + 1, 0.));
-		for (int r = 0; r <= degree; ++r)
-		{
-			int s1 = 0;
-			int s2 = 1;
-			a[0][0] = 1.;
-
-			for (int k = 1; k <= 2; ++k)
-			{
-				double d = 0.;
-				int rk = r - k;
-				int pk = degree - k;
-
-				if (r >= k)
-				{
-					a[s2][0] = a[s1][0] / ndu[pk + 1][rk];
-					d = a[s2][0] * ndu[rk][pk];
-				}
-
-				int j1 = 0;
-				if (rk >= -1)
-					j1 = 1;
-				else
-					j1 = -rk;
-
-				int j2 = 0;
-				if (r - 1 <= pk)
-					j2 = k - 1;
-				else
-					j2 = degree - r;
-
-				for (int j = j1; j <= j2; ++j)
-				{
-					a[s2][j] = (a[s1][j] - a[s1][j - 1]) / ndu[pk + 1][rk + j];
-					d += a[s2][j] * ndu[rk + j][pk];
-				}
-
-				if (r <= pk)
-				{
-					a[s2][k] = -a[s1][k - 1] / ndu[pk + 1][r];
-					d += a[s2][k] * ndu[r][pk];
-				}
-
-				ders[k][r] = d;
-				std::swap(s1, s2);
-			}
-		}
-
-		int r = degree;
-		for (int k = 1; k <= 2; ++k)
-		{
-			for (int j = 0; j <= degree; ++j)
-				ders[k][j] *= r;
-			r *= (degree - k);
-		}
-	}
-}
+#include "NurbsBasis.h"
+#include "NurbsKnots.h"
 
 ///////////////////////////////////////////////////////////////////////////
 NurbsCurve::NurbsCurve() :
@@ -139,29 +46,7 @@ void NurbsCurve::set_knots(const std::vector <double>& knots)
 
 void NurbsCurve::scale_knots(std::vector<double>& knots)
 {
-	if (knots.empty())
-		return;
-
-	//compute min and max
-	double dMin = knots[0];
-	double dMax = knots[0];
-	for (int i = 1; i < knots.size(); i++)
-	{
-		double v = knots[i];
-		dMin = std::min(dMin, v);
-		dMax = std::max(dMax, v);
-	}
-
-	if (dMax == dMin)
-	{
-		for (int i = 0; i < knots.size(); i++)
-			knots[i] = 0.;
-		return;
-	}
-
-	//apply scale so that 0<= knots <= 1
-	for (int i = 0; i < knots.size(); i++)
-		knots[i] = (knots[i] - dMin) / (dMax - dMin);
+	NurbsKnots::normalize_to_01(knots);
 }
 
 void NurbsCurve::set_uniform()
@@ -391,7 +276,7 @@ void NurbsCurve::evaluate_derivatives(double u, Point3& d1, Point3& d2) const
 
 	const int span = find_knot_span(_knots, u);
 	double ders[3][32];
-	basis_function_derivatives(_degree, _knots, span, u, ders);
+	NurbsBasis::basis_function_derivatives(_degree, _knots, span, u, ders);
 
 	Point3 A0, A1, A2;
 	double W0 = 0.;
@@ -662,29 +547,7 @@ namespace NurbsCurveUtil
 
 	std::vector<double> build_clamped_uniform_knots(int nbPoints, int degree)
 	{
-		std::vector<double> knots;
-		if (nbPoints <= 0)
-			return knots;
-
-		if (degree < 0)
-			degree = 0;
-
-		if (degree >= nbPoints)
-			degree = nbPoints - 1;
-
-		knots.reserve(nbPoints + degree + 1);
-
-		for (int i = 0; i <= degree; ++i)
-			knots.push_back(0.);
-
-		int interior = nbPoints - degree - 1;
-		for (int i = 1; i <= interior; ++i)
-			knots.push_back((double)i);
-
-		for (int i = 0; i <= degree; ++i)
-			knots.push_back((double)(interior + 1));
-
-		return knots;
+		return NurbsKnots::build_clamped_uniform_knots(degree, nbPoints);
 	}
 
 	bool curves_are_compatible(const NurbsCurve& c1, const NurbsCurve& c2)
@@ -750,27 +613,7 @@ namespace NurbsCurveUtil
 
 	std::vector<double> build_open_uniform_knots(int degree, int nCtrl)
 	{
-		std::vector<double> knots;
-		if (nCtrl <= 0)
-			return knots;
-
-		if (degree < 1)
-			degree = 1;
-		if (degree >= nCtrl)
-			degree = nCtrl - 1;
-
-		knots.reserve(nCtrl + degree + 1);
-		for (int i = 0; i <= degree; ++i)
-			knots.push_back(0.);
-
-		const int interior = nCtrl - degree - 1;
-		for (int i = 1; i <= interior; ++i)
-			knots.push_back((double)i / (double)(interior + 1));
-
-		for (int i = 0; i <= degree; ++i)
-			knots.push_back(1.);
-
-		return knots;
+		return NurbsKnots::build_open_uniform_knots(degree, nCtrl);
 	}
 }
 

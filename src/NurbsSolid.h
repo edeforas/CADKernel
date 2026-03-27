@@ -17,6 +17,7 @@ public:
 	void add_surface(const NurbsSurface& ns);
 	std::vector<NurbsSurface>& surfaces();
 	const std::vector<NurbsSurface>& surfaces() const;
+	bool empty() const;
 
 	void apply_transform(const Transform& t);
 
