@@ -1272,99 +1272,20 @@ bool NurbsBoolean::boolean_difference_bbox(const NurbsSolid& a, const NurbsSolid
 	}
 }
 
-bool NurbsBoolean::boolean_union_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_union(a, b, solidResult))
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	fill_partial_overlap_approximation(a, b, diagnostics);
-	result.clear();
-	return false;
-}
-
-bool NurbsBoolean::boolean_intersection_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_intersection(a, b, solidResult))
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	return build_partial_overlap_intersection_trimmed(a, b, result, diagnostics);
-}
-
-bool NurbsBoolean::boolean_difference_trimmed(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_difference_bbox(a, b, solidResult))
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	fill_partial_overlap_approximation(a, b, diagnostics);
-	result.clear();
-	return false;
-}
-
-bool NurbsBoolean::boolean_union_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_union(a, b, solidResult))
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	return build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Union, result, diagnostics);
-}
-
-bool NurbsBoolean::boolean_intersection_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_intersection(a, b, solidResult))
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	return build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Intersection, result, diagnostics);
-}
-
-bool NurbsBoolean::boolean_difference_trimmed_exact(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
-{
-	reset_diagnostics(diagnostics);
-
-	NurbsSolid solidResult;
-	if (boolean_difference_bbox(a, b, solidResult) != false)
-	{
-		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
-		return true;
-	}
-
-	return build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Difference, result, diagnostics);
-}
-
 //////////////////////////////////////////////////////////////////////////////////
 bool NurbsBoolean::compute_union(const NurbsSolid& a, const NurbsSolid& b, NurbsSolid& result, NurbsIntersectionResult* diagnostics) const
 {
+	reset_diagnostics(diagnostics);
+
+	NurbsSolid solidResult;
+	if (boolean_union(a, b, solidResult))
+	{
+		result = solidResult;
+		return true;
+	}
+
 	std::vector<NurbsTrimmedSurface> trimmedResult;
-	if (!boolean_union_trimmed_exact(a, b, trimmedResult, diagnostics))
+	if (!build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Union, trimmedResult, diagnostics))
 		return false;
 	result.clear();
 	for (const auto& ts : trimmedResult)
@@ -1374,8 +1295,17 @@ bool NurbsBoolean::compute_union(const NurbsSolid& a, const NurbsSolid& b, Nurbs
 //////////////////////////////////////////////////////////////////////////////////
 bool NurbsBoolean::compute_intersection(const NurbsSolid& a, const NurbsSolid& b, NurbsSolid& result, NurbsIntersectionResult* diagnostics) const
 {
+	reset_diagnostics(diagnostics);
+
+	NurbsSolid solidResult;
+	if (boolean_intersection(a, b, solidResult))
+	{
+		result = solidResult;
+		return true;
+	}
+
 	std::vector<NurbsTrimmedSurface> trimmedResult;
-	if (!boolean_intersection_trimmed_exact(a, b, trimmedResult, diagnostics))
+	if (!build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Intersection, trimmedResult, diagnostics))
 		return false;
 	result.clear();
 	for (const auto& ts : trimmedResult)
@@ -1385,11 +1315,19 @@ bool NurbsBoolean::compute_intersection(const NurbsSolid& a, const NurbsSolid& b
 //////////////////////////////////////////////////////////////////////////////////
 bool NurbsBoolean::compute_difference(const NurbsSolid& a, const NurbsSolid& b, NurbsSolid& result, NurbsIntersectionResult* diagnostics) const
 {
-	result.clear();
+	reset_diagnostics(diagnostics);
+
+	NurbsSolid solidResult;
+	if (boolean_difference_bbox(a, b, solidResult))
+	{
+		result = solidResult;
+		return true;
+	}
 
 	std::vector<NurbsTrimmedSurface> trimmedResult;
-	if (!boolean_difference_trimmed_exact(a, b, trimmedResult, diagnostics))
+	if (!build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Difference, trimmedResult, diagnostics))
 		return false;
+	result.clear();
 	for (const auto& ts : trimmedResult)
 		result.add_surface(ts);
 	return true;

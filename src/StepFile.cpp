@@ -8,6 +8,7 @@
 #include "NurbsUtil.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -15,6 +16,7 @@
 #include <limits>
 #include <map>
 #include <sstream>
+#include <typeinfo>
 
 namespace
 {
@@ -234,7 +236,7 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 
 	int nU = n.nb_points_u();
 	int nV = n.nb_points_v();
-	const std::vector<Point3>& points = n.points();
+	std::vector<Point3> points = n.points();
 	if ((nU <= 0) || (nV <= 0) || ((int)points.size() != nU * nV))
 		return -1;
 
@@ -245,11 +247,30 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	if (degreeU >= nU) degreeU = nU - 1;
 	if (degreeV >= nV) degreeV = nV - 1;
 
-	const std::vector<double> weights = sanitize_weights_step(n.weights(), nU * nV);
-	const NurbsUtil::KnotAnalysis uData = NurbsUtil::analyze_knots(n.knots_u(), degreeU, nU);
-	const NurbsUtil::KnotAnalysis vData = NurbsUtil::analyze_knots(n.knots_v(), degreeV, nV);
-	if (uData.unique_knots.empty() || vData.unique_knots.empty())
+	std::vector<double> weights = sanitize_weights_step(n.weights(), nU * nV);
+	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(n.knots_u(), degreeU, nU);
+	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(n.knots_v(), degreeV, nV);
+	if (uDataOrig.unique_knots.empty() || vDataOrig.unique_knots.empty())
 		return -1;
+
+	// Handle closed surfaces by duplicating control points
+	NurbsUtil::KnotAnalysis uData = uDataOrig;
+	NurbsUtil::KnotAnalysis vData = vDataOrig;
+	bool closedU = n.is_closed_u();
+	bool closedV = n.is_closed_v();
+
+	if (closedU && !closedV) {
+		// Adjust knots to non-periodic
+		if (uData.unique_knots.back() < 1.0 - 1e-6) {
+			uData.unique_knots.push_back(1.0);
+			uData.multiplicities.push_back(degreeU + 1);
+		}
+		uData.multiplicities[0] = degreeU + 1;
+		uData.multiplicities.back() = degreeU + 1;
+		closedU = false;
+	}
+
+	// For closedV, keep as is for now, since torus worked with it
 
 	const int firstPointId = _iItemIndent;
 	for (const auto& p : points)
@@ -273,7 +294,7 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 		_f << endl;
 	}
 
-	_f << "),.UNSPECIFIED.," << (n.is_closed_u() ? ".T." : ".F.") << "," << (n.is_closed_v() ? ".T." : ".F.") << ",.F.)" << endl;
+	_f << "),.UNSPECIFIED.," << (closedU ? ".T." : ".F.") << "," << (closedV ? ".T." : ".F.") << ",.F.)" << endl;
 
 	_f << "B_SPLINE_SURFACE_WITH_KNOTS((";
 	for (int i = 0; i < (int)uData.multiplicities.size(); ++i)
@@ -329,6 +350,69 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	return surfaceId;
 }
 
+int StepWriter::write_curve_entity(const NurbsCurve& n)
+{
+	if (!_f.is_open())
+		return -1;
+
+	int nP = n.nb_points();
+	const std::vector<Point3>& points = n.points();
+	if ((nP <= 0) || ((int)points.size() != nP))
+		return -1;
+
+	int degree = n.degree();
+	if (degree < 0) degree = 0;
+	if (degree >= nP) degree = nP - 1;
+
+	const std::vector<double> weights = sanitize_weights_step(n.weights(), nP);
+	const NurbsUtil::KnotAnalysis knotData = NurbsUtil::analyze_knots(n.knots(), degree, nP);
+	if (knotData.unique_knots.empty())
+		return -1;
+
+	const int firstPointId = _iItemIndent;
+	for (const auto& p : points)
+		write_cartesian_point(p);
+
+	const int curveId = next_id();
+	_f << "#" << curveId << "=(BOUNDED_CURVE()B_SPLINE_CURVE(" << degree << ",(" << endl;
+
+	for (int i = 0; i < nP; ++i)
+	{
+		_f << "#" << (firstPointId + i);
+		if (i + 1 < nP)
+			_f << ",";
+	}
+	_f << "),.UNSPECIFIED.," << (n.is_closed() ? ".T." : ".F.") << ",.F.)" << endl;
+
+	_f << "B_SPLINE_CURVE_WITH_KNOTS((";
+	for (int i = 0; i < (int)knotData.multiplicities.size(); ++i)
+	{
+		_f << knotData.multiplicities[i];
+		if (i + 1 < (int)knotData.multiplicities.size())
+			_f << ",";
+	}
+
+	_f << "),(";
+	for (int i = 0; i < (int)knotData.unique_knots.size(); ++i)
+	{
+		_f << sanitize_double(knotData.unique_knots[i]);
+		if (i + 1 < (int)knotData.unique_knots.size())
+			_f << ",";
+	}
+	_f << "),.UNSPECIFIED.)" << endl;
+	_f << "GEOMETRIC_REPRESENTATION_ITEM()" << endl;
+
+	_f << "RATIONAL_B_SPLINE_CURVE((";
+	for (int i = 0; i < nP; ++i)
+	{
+		_f << sanitize_double(weights[i]);
+		if (i + 1 < nP)
+			_f << ",";
+	}
+	_f << "))REPRESENTATION_ITEM('')CURVE());" << endl;
+	return curveId;
+}
+
 int StepWriter::write_advanced_face(const NurbsSurface& n)
 {
 	const int surfaceId = write_surface_entity(n);
@@ -336,7 +420,44 @@ int StepWriter::write_advanced_face(const NurbsSurface& n)
 		return -1;
 
 	const int faceId = next_id();
-	_f << "#" << faceId << "=ADVANCED_FACE('',(),#" << surfaceId << ",.T.);" << endl;
+	const NurbsTrimmedSurface* trimmed = dynamic_cast<const NurbsTrimmedSurface*>(&n);
+	if (trimmed && !trimmed->trim_loops().empty()) {
+		std::vector<int> boundIds;
+		bool hasOuter = false;
+		for (const auto& loop : trimmed->trim_loops())
+		{
+			if (loop.points.size() < 3)
+				continue;
+
+			std::vector<Point3> loop3d;
+			loop3d.reserve(loop.points.size());
+			for (const auto& uv : loop.points)
+			{
+				Point3 p;
+				n.evaluate(uv.u, uv.v, p);
+				loop3d.push_back(p);
+			}
+
+			const bool bHole = loop.hole || hasOuter;
+			const int boundId = write_trim_loop_bound(loop3d, bHole);
+			if (boundId > 0)
+			{
+				boundIds.push_back(boundId);
+				if (!bHole)
+					hasOuter = true;
+			}
+		}
+		_f << "#" << faceId << "=ADVANCED_FACE('',(";
+		for (int i = 0; i < (int)boundIds.size(); ++i)
+		{
+			_f << "#" << boundIds[i];
+			if (i + 1 < (int)boundIds.size())
+				_f << ",";
+		}
+		_f << "),#" << surfaceId << ",.T.);" << endl;
+	} else {
+		_f << "#" << faceId << "=ADVANCED_FACE('',(),#" << surfaceId << ",.T.);" << endl;
+	}
 	return faceId;
 }
 
@@ -448,60 +569,19 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 
 	return boundId;
 }
-
-int StepWriter::write_advanced_face(const NurbsTrimmedSurface& ts)
-{
-	if (!_f.is_open())
-		return -1;
-
-	const NurbsSurface& base = ts;
-	const int surfaceId = write_surface_entity(base);
-	if (surfaceId < 0)
-		return -1;
-
-	std::vector<int> boundIds;
-	bool hasOuter = false;
-
-	for (const auto& loop : ts.trim_loops())
-	{
-		if (loop.points.size() < 3)
-			continue;
-
-		std::vector<Point3> loop3d;
-		loop3d.reserve(loop.points.size());
-		for (const auto& uv : loop.points)
-		{
-			Point3 p;
-			base.evaluate(uv.u, uv.v, p);
-			loop3d.push_back(p);
-		}
-
-		const bool bHole = loop.hole || hasOuter;
-		const int boundId = write_trim_loop_bound(loop3d, bHole);
-		if (boundId > 0)
-		{
-			boundIds.push_back(boundId);
-			if (!bHole)
-				hasOuter = true;
-		}
-	}
-
-	const int faceId = next_id();
-	_f << "#" << faceId << "=ADVANCED_FACE('',(";
-	for (int i = 0; i < (int)boundIds.size(); ++i)
-	{
-		_f << "#" << boundIds[i];
-		if (i + 1 < (int)boundIds.size())
-			_f << ",";
-	}
-	_f << "),#" << surfaceId << ",.T.);" << endl;
-
-	return faceId;
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const NurbsCurve& n)
 {
-	//TODO
+	if (!_f.is_open())
+		return;
+	if ((_iGeomContextId < 0) || (_iProductDefShapeId < 0))
+		return;
+
+	const int curveId = write_curve_entity(n);
+	if (curveId < 0)
+		return;
+
+	queue_representation_item(curveId, REP_SHAPE);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const NurbsSolid& n)
@@ -551,58 +631,6 @@ void StepWriter::write(const NurbsSurface& n)
 	queue_representation_item(surfaceId, REP_SHAPE);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void StepWriter::write(const NurbsTrimmedSurface& ts)
-{
-	if (!_f.is_open())
-		return;
-	if ((_iGeomContextId < 0) || (_iProductDefShapeId < 0))
-		return;
-
-	const int faceId = write_advanced_face(ts);
-	if (faceId < 0)
-		return;
-
-	const int shellId = next_id();
-	_f << "#" << shellId << "=OPEN_SHELL('',(#" << faceId << "));" << endl;
-
-	const int modelId = next_id();
-	_f << "#" << modelId << "=SHELL_BASED_SURFACE_MODEL('',(#" << shellId << "));" << endl;
-	queue_representation_item(modelId, REP_MANIFOLD_SURFACE);
-}
-////////////////////////////////////////////////////////////////////////////////////////////////
-void StepWriter::write(const vector<NurbsTrimmedSurface>& trimmedSurfaces)
-{
-	if (!_f.is_open())
-		return;
-	if ((_iGeomContextId < 0) || (_iProductDefShapeId < 0))
-		return;
-
-	std::vector<int> faceIds;
-	faceIds.reserve(trimmedSurfaces.size());
-	for (const auto& ts : trimmedSurfaces)
-	{
-		const int faceId = write_advanced_face(ts);
-		if (faceId > 0)
-			faceIds.push_back(faceId);
-	}
-
-	if (faceIds.empty())
-		return;
-
-	const int shellId = next_id();
-	_f << "#" << shellId << "=OPEN_SHELL('',(";
-	for (int i = 0; i < (int)faceIds.size(); ++i)
-	{
-		_f << "#" << faceIds[i];
-		if (i + 1 < (int)faceIds.size())
-			_f << ",";
-	}
-	_f << "));" << endl;
-
-	const int modelId = next_id();
-	_f << "#" << modelId << "=SHELL_BASED_SURFACE_MODEL('',(#" << shellId << "));" << endl;
-	queue_representation_item(modelId, REP_MANIFOLD_SURFACE);
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////
 namespace
 {
@@ -1122,6 +1150,98 @@ namespace
 
 		return true;
 	}
+
+	bool parse_curve_entity(const std::string& entity, const std::map<int, Point3>& pointsById, NurbsCurve& n)
+	{
+		const size_t bsplinePos = entity.find("B_SPLINE_CURVE(");
+		if (bsplinePos == std::string::npos)
+			return false;
+
+		StepTextParser pCurve(entity, bsplinePos + std::string("B_SPLINE_CURVE").size());
+		if (!pCurve.expect('('))
+			return false;
+
+		int degree = 0;
+		if (!pCurve.parse_int(degree))
+			return false;
+		if (!pCurve.expect(','))
+			return false;
+
+		std::vector<int> pointIds;
+		if (!pCurve.parse_ref_list(pointIds))
+			return false;
+		if (pointIds.empty())
+			return false;
+
+		if (!pCurve.expect(','))
+			return false;
+		if (!pCurve.consume_until(','))
+			return false;
+		if (!pCurve.expect(','))
+			return false;
+
+		bool closed = false;
+		if (!pCurve.parse_step_bool(closed))
+			return false;
+
+		const size_t knotsPos = entity.find("B_SPLINE_CURVE_WITH_KNOTS(", bsplinePos);
+		if (knotsPos == std::string::npos)
+			return false;
+
+		StepTextParser pKnots(entity, knotsPos + std::string("B_SPLINE_CURVE_WITH_KNOTS").size());
+		if (!pKnots.expect('('))
+			return false;
+
+		std::vector<int> mult;
+		std::vector<double> unique;
+		if (!pKnots.parse_int_list(mult))
+			return false;
+		if (!pKnots.expect(','))
+			return false;
+		if (!pKnots.parse_double_list(unique))
+			return false;
+
+		const size_t weightsPos = entity.find("RATIONAL_B_SPLINE_CURVE(", knotsPos);
+		if (weightsPos == std::string::npos)
+			return false;
+
+		StepTextParser pWeights(entity, weightsPos + std::string("RATIONAL_B_SPLINE_CURVE").size());
+		if (!pWeights.expect('('))
+			return false;
+
+		std::vector<double> weights;
+		if (!pWeights.parse_double_list(weights))
+			return false;
+
+		const int nP = (int)pointIds.size();
+		if ((int)weights.size() != nP)
+			return false;
+
+		std::vector<Point3> points;
+		points.reserve(nP);
+
+		for (int i = 0; i < nP; ++i)
+		{
+			const int id = pointIds[i];
+			std::map<int, Point3>::const_iterator it = pointsById.find(id);
+			if (it == pointsById.end())
+				return false;
+
+			points.push_back(it->second);
+		}
+
+		std::vector<double> knots = expand_knots(mult, unique);
+		if ((int)knots.size() != nP + degree + 1)
+			return false;
+
+		n.clear();
+		n.set_degree(degree);
+		n.set_points(points);
+		n.set_knots(knots);
+		n.set_weights(weights);
+
+		return true;
+	}
 }
 
 StepReader::StepReader()
@@ -1132,134 +1252,142 @@ StepReader::~StepReader()
 {
 }
 
-bool StepReader::read(const string& filename, NurbsSurface& n)
+void StepReader::open(const string& filename)
 {
 	std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
 	if (!in.is_open())
-		return false;
+		throw std::runtime_error("Cannot open file: " + filename);
 
 	std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 	if (content.find("ISO-10303-21;") == std::string::npos)
-		return false;
+		throw std::runtime_error("Not a valid STEP file: " + filename);
 
-	std::map<int, Point3> pointsById;
-	if (!parse_cartesian_points(content, pointsById))
-		return false;
+	_pointsById.clear();
+	if (!parse_cartesian_points(content, _pointsById))
+		throw std::runtime_error("Failed to parse cartesian points");
 
-	std::map<int, std::string> entities;
-	if (!parse_entities(content, entities))
-		return false;
+	_entities.clear();
+	if (!parse_entities(content, _entities))
+		throw std::runtime_error("Failed to parse entities");
 
-	for (std::map<int, std::string>::const_iterator it = entities.begin(); it != entities.end(); ++it)
-		if (it->second.find("B_SPLINE_SURFACE(") != std::string::npos)
-			return parse_surface_entity(it->second, pointsById, n);
+	_currentEntity = _entities.begin();
+}
 
+bool StepReader::read(NurbsSurface& n)
+{
+	for (; _currentEntity != _entities.end(); ++_currentEntity)
+	{
+		if (_currentEntity->second.find("B_SPLINE_SURFACE(") != std::string::npos)
+		{
+			bool result = parse_surface_entity(_currentEntity->second, _pointsById, n);
+			++_currentEntity;
+			return result;
+		}
+	}
 	return false;
 }
 
-bool StepReader::read(const string& filename, NurbsSolid& n)
+bool StepReader::read(NurbsSolid& n)
 {
-	std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
-	if (!in.is_open())
-		return false;
-
-	std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	if (content.find("ISO-10303-21;") == std::string::npos)
-		return false;
-
-	std::map<int, Point3> pointsById;
-	if (!parse_cartesian_points(content, pointsById))
-		return false;
-
-	std::map<int, std::string> entities;
-	if (!parse_entities(content, entities))
-		return false;
-
-	int shellId = -1;
-	for (std::map<int, std::string>::const_iterator it = entities.begin(); it != entities.end(); ++it)
+	for (; _currentEntity != _entities.end(); ++_currentEntity)
 	{
-		const std::string& entity = it->second;
+		const std::string& entity = _currentEntity->second;
 		const size_t brepPos = entity.find("MANIFOLD_SOLID_BREP(");
-		if (brepPos == std::string::npos)
-			continue;
+		if (brepPos != std::string::npos)
+		{
+			int shellId = -1;
+			StepTextParser pBrep(entity, brepPos + std::string("MANIFOLD_SOLID_BREP").size());
+			if (!pBrep.expect('('))
+				continue;
+			if (!pBrep.consume_until(','))
+				continue;
+			if (!pBrep.expect(','))
+				continue;
+			if (!pBrep.parse_ref(shellId))
+				continue;
 
-		StepTextParser pBrep(entity, brepPos + std::string("MANIFOLD_SOLID_BREP").size());
-		if (!pBrep.expect('('))
-			continue;
-		if (!pBrep.consume_until(','))
-			continue;
-		if (!pBrep.expect(','))
-			continue;
-		if (!pBrep.parse_ref(shellId))
-			continue;
+			auto itShell = _entities.find(shellId);
+			if (itShell == _entities.end())
+				continue;
 
-		break;
+			const std::string& shellEntity = itShell->second;
+			const size_t shellPos = shellEntity.find("CLOSED_SHELL(");
+			if (shellPos == std::string::npos)
+				continue;
+
+			StepTextParser pShell(shellEntity, shellPos + std::string("CLOSED_SHELL").size());
+			if (!pShell.expect('('))
+				continue;
+			if (!pShell.consume_until(','))
+				continue;
+			if (!pShell.expect(','))
+				continue;
+
+			std::vector<int> faceIds;
+			if (!pShell.parse_ref_list(faceIds))
+				continue;
+			if (faceIds.empty())
+				continue;
+
+			n.clear();
+			for (size_t i = 0; i < faceIds.size(); ++i)
+			{
+				auto itFace = _entities.find(faceIds[i]);
+				if (itFace == _entities.end())
+					continue;
+
+				const std::string& faceEntity = itFace->second;
+				const size_t facePos = faceEntity.find("ADVANCED_FACE(");
+				if (facePos == std::string::npos)
+					continue;
+
+				StepTextParser pFace(faceEntity, facePos + std::string("ADVANCED_FACE").size());
+				if (!pFace.expect('('))
+					continue;
+				if (!pFace.consume_until(','))
+					continue;
+				if (!pFace.expect(','))
+					continue;
+				if (!pFace.consume_until(','))
+					continue;
+				if (!pFace.expect(','))
+					continue;
+
+				int surfaceId = -1;
+				if (!pFace.parse_ref(surfaceId))
+					continue;
+
+				auto itSurface = _entities.find(surfaceId);
+				if (itSurface == _entities.end())
+					continue;
+
+				NurbsSurface surface;
+				if (!parse_surface_entity(itSurface->second, _pointsById, surface))
+					continue;
+
+				n.add_surface(surface);
+			}
+
+			if (!n.surfaces().empty())
+			{
+				++_currentEntity;
+				return true;
+			}
+		}
 	}
+	return false;
+}
 
-	if (shellId < 0)
-		return false;
-
-	std::map<int, std::string>::const_iterator itShell = entities.find(shellId);
-	if (itShell == entities.end())
-		return false;
-
-	const std::string& shellEntity = itShell->second;
-	const size_t shellPos = shellEntity.find("CLOSED_SHELL(");
-	if (shellPos == std::string::npos)
-		return false;
-
-	StepTextParser pShell(shellEntity, shellPos + std::string("CLOSED_SHELL").size());
-	if (!pShell.expect('('))
-		return false;
-	if (!pShell.consume_until(','))
-		return false;
-	if (!pShell.expect(','))
-		return false;
-
-	std::vector<int> faceIds;
-	if (!pShell.parse_ref_list(faceIds))
-		return false;
-	if (faceIds.empty())
-		return false;
-
-	n.clear();
-	for (size_t i = 0; i < faceIds.size(); ++i)
+bool StepReader::read(NurbsCurve& n)
+{
+	for (; _currentEntity != _entities.end(); ++_currentEntity)
 	{
-		std::map<int, std::string>::const_iterator itFace = entities.find(faceIds[i]);
-		if (itFace == entities.end())
-			return false;
-
-		const std::string& faceEntity = itFace->second;
-		const size_t facePos = faceEntity.find("ADVANCED_FACE(");
-		if (facePos == std::string::npos)
-			return false;
-
-		StepTextParser pFace(faceEntity, facePos + std::string("ADVANCED_FACE").size());
-		if (!pFace.expect('('))
-			return false;
-		if (!pFace.consume_until(','))
-			return false;
-		if (!pFace.expect(','))
-			return false;
-		if (!pFace.consume_until(','))
-			return false;
-		if (!pFace.expect(','))
-			return false;
-
-		int surfaceId = -1;
-		if (!pFace.parse_ref(surfaceId))
-			return false;
-
-		std::map<int, std::string>::const_iterator itSurface = entities.find(surfaceId);
-		if (itSurface == entities.end())
-			return false;
-
-		NurbsSurface surface;
-		if (!parse_surface_entity(itSurface->second, pointsById, surface))
-			return false;
-
-		n.add_surface(surface);
+		if (_currentEntity->second.find("B_SPLINE_CURVE(") != std::string::npos)
+		{
+			bool result = parse_curve_entity(_currentEntity->second, _pointsById, n);
+			++_currentEntity;
+			return result;
+		}
 	}
-
-	return !n.surfaces().empty();
+	return false;
 }

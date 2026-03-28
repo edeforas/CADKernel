@@ -49,11 +49,11 @@ int main()
 	o.close();
 
 	NurbsBooleanFallback fallback;
-	std::vector<NurbsTrimmedSurface> trimmedResult;
-	if (nb.boolean_difference_trimmed_exact(torus, sphere, trimmedResult))
+	NurbsSolid solidResult;
+	if (nb.compute_difference(torus, sphere, solidResult, nullptr))
 	{
 		Mesh diffMeshFallback;
-		NurbsUtil::to_mesh(trimmedResult, diffMeshFallback);
+		NurbsUtil::to_mesh(solidResult, diffMeshFallback);
 		o.open("sample_nurbsboolean_fallback.obj");
 		o.write(diffMeshFallback);
 		o.close(); 
