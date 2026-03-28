@@ -392,3 +392,15 @@ NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knot
 
 	return result;
 }
+
+void NurbsUtil::solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<NurbsTrimmedSurface>& dst)
+{
+	dst.clear();
+	dst.reserve(src.surfaces().size());
+
+	for (const auto& s : src.surfaces())
+	{
+		NurbsTrimmedSurface ts(s);
+		dst.push_back(ts);
+	}
+}

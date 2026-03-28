@@ -5,6 +5,7 @@
 #include "NurbsSurface.h"
 #include "NurbsTrimmedSurface.h"
 #include "BoundingBox.h"
+#include "NurbsUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -370,19 +371,6 @@ namespace
 			finalize_curve_topology_and_winding(resampled, dTol);
 			if (resampled.samples.size() >= 2)
 				diagnostics->curves.push_back(resampled);
-		}
-	}
-
-
-	void solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<NurbsTrimmedSurface>& dst)
-	{
-		dst.clear();
-		dst.reserve(src.surfaces().size());
-
-		for (const auto& s : src.surfaces())
-		{
-			NurbsTrimmedSurface ts(s);
-			dst.push_back(ts);
 		}
 	}
 
@@ -1291,7 +1279,7 @@ bool NurbsBoolean::boolean_union_trimmed(const NurbsSolid& a, const NurbsSolid& 
 	NurbsSolid solidResult;
 	if (boolean_union(a, b, solidResult))
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 
@@ -1307,7 +1295,7 @@ bool NurbsBoolean::boolean_intersection_trimmed(const NurbsSolid& a, const Nurbs
 	NurbsSolid solidResult;
 	if (boolean_intersection(a, b, solidResult))
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 
@@ -1321,7 +1309,7 @@ bool NurbsBoolean::boolean_difference_trimmed(const NurbsSolid& a, const NurbsSo
 	NurbsSolid solidResult;
 	if (boolean_difference_bbox(a, b, solidResult))
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 
@@ -1337,7 +1325,7 @@ bool NurbsBoolean::boolean_union_trimmed_exact(const NurbsSolid& a, const NurbsS
 	NurbsSolid solidResult;
 	if (boolean_union(a, b, solidResult))
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 
@@ -1351,7 +1339,7 @@ bool NurbsBoolean::boolean_intersection_trimmed_exact(const NurbsSolid& a, const
 	NurbsSolid solidResult;
 	if (boolean_intersection(a, b, solidResult))
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 
@@ -1365,7 +1353,7 @@ bool NurbsBoolean::boolean_difference_trimmed_exact(const NurbsSolid& a, const N
 	NurbsSolid solidResult;
 	if (boolean_difference_bbox(a, b, solidResult) != false)
 	{
-		solid_to_trimmed_surfaces(solidResult, result);
+		NurbsUtil::solid_to_trimmed_surfaces(solidResult, result);
 		return true;
 	}
 

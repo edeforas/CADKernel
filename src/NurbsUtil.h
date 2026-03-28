@@ -21,6 +21,7 @@ namespace NurbsUtil
 	void to_mesh(const NurbsTrimmedSurface& ts, Mesh& m, int iNbSegments = 24, bool bClearMesh = true);
 	void to_mesh(const std::vector<NurbsTrimmedSurface>& trimmedSurfaces, Mesh& m, int iNbSegments = 24);
 	void to_controlpoints_mesh(const NurbsSurface& n, Mesh& m);
+	void solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<NurbsTrimmedSurface>& dst);
 
 	double sanitize_weight(double value,double kEpsilonWeight = 1.e-12);
 	std::vector<double> build_safe_weights(const std::vector<double>& weights, int expectedSize);
