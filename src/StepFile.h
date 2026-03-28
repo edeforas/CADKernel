@@ -11,12 +11,6 @@ class NurbsSolid;
 class NurbsTrimmedSurface;
 class Point3;
 
-namespace StepFile
-{
-//	bool save(const string& filename, const Body& body);
-//	bool load(const string& filename, Body& body);
-}
-
 class StepWriter
 {
 public:
@@ -41,8 +35,6 @@ private:
 		REP_MANIFOLD_SURFACE
 	};
 
-	struct KnotAnalysis;
-
 	int next_id();
 	void write_header();
 	void write_footer();
@@ -53,9 +45,6 @@ private:
 	void write_cartesian_point(const Point3& p);
 	void queue_representation_item(int itemId, RepresentationKind kind);
 	void flush_representation();
-
-	static KnotAnalysis analyze_knots(const vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
-	static vector<double> build_uniform_knots(int degree, int nbCtrlPoints);
 
 	ofstream _f;
 	string _sNameFile;

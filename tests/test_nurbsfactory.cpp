@@ -14,7 +14,7 @@
 #include <cmath>
 using namespace std;
 
-void test_near(double a, double ref, double epsilon=1.e-10,const string& sMessage="")
+void test_near(double a, double ref, double epsilon = 1.e-10, const string& sMessage = "")
 {
 	if ((a > ref + epsilon) || (a < ref - epsilon))
 	{
@@ -123,7 +123,7 @@ void test_nurbsfactory_create_solid_torus()
 	cout << endl << "test_nurbsfactory_create_solid_torus" << endl;
 
 	NurbsSolid n;
-	NurbsFactory::create_torus(30,10, n);
+	NurbsFactory::create_torus(30, 10, n);
 
 	save_solid(n, "test_nurbsfactory_create_solid_torus");
 }
@@ -133,7 +133,7 @@ void test_nurbsfactory_create_solid_box()
 	cout << endl << "test_nurbsfactory_create_solid_box" << endl;
 
 	NurbsSolid ns;
-	NurbsFactory::create_box(10,40,90, ns);
+	NurbsFactory::create_box(10, 40, 90, ns);
 
 	Mesh m;
 	NurbsUtil::to_mesh(ns, m, 3);
@@ -182,7 +182,7 @@ void test_nurbsfactory_create_solid_torus_transform()
 	StepWriter sw;
 	sw.open("test_nurbsfactory_create_solid_torus_transform.step");
 
-	for (double i=0.5; i < 5; i *= 2.)
+	for (double i = 0.5; i < 5; i *= 2.)
 		for (double j = 0.5; j < 5; j *= 2.)
 			for (double k = 0.5; k < 5; k *= 2.)
 			{
@@ -190,7 +190,7 @@ void test_nurbsfactory_create_solid_torus_transform()
 				NurbsFactory::create_torus(30, 10, ns);
 				Scale scale(i, j, k);
 				Translation translate(Point3(i, j, k) * 100.);
-				RotationEulerAngles rotate(i*10, j*10, k*10);
+				RotationEulerAngles rotate(i * 10, j * 10, k * 10);
 
 				rotate.apply_all(ns.points());
 				scale.apply_all(ns.points());
@@ -200,7 +200,7 @@ void test_nurbsfactory_create_solid_torus_transform()
 				NurbsUtil::to_mesh(ns, m, 4);
 				ow.write(m);
 				sw.write(ns);
-		}
+			}
 
 	ow.close();
 	sw.close();

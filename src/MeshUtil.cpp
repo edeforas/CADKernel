@@ -10,7 +10,7 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////
-void MeshUtil::create_from_z(const vector<double>& vz, int iSizeX, int iSizeY, Mesh& m)
+void MeshUtil::create_surface_from_z(const vector<double>& vz, int iSizeX, int iSizeY, Mesh& m)
 {
 	m.clear();
 

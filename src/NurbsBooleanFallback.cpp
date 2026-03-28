@@ -6,14 +6,14 @@
 
 namespace
 {
-void solids_to_meshes(const NurbsSolid& a, const NurbsSolid& b, Mesh& meshA, Mesh& meshB, int iNbSegments)
-{
-	if (iNbSegments < 4)
-		iNbSegments = 4;
+	void solids_to_meshes(const NurbsSolid& a, const NurbsSolid& b, Mesh& meshA, Mesh& meshB, int iNbSegments)
+	{
+		if (iNbSegments < 4)
+			iNbSegments = 4;
 
-	NurbsUtil::to_mesh(a, meshA, iNbSegments);
-	NurbsUtil::to_mesh(b, meshB, iNbSegments);
-}
+		NurbsUtil::to_mesh(a, meshA, iNbSegments);
+		NurbsUtil::to_mesh(b, meshB, iNbSegments);
+	}
 }
 
 void NurbsBooleanFallback::union_mesh(const NurbsSolid& a, const NurbsSolid& b, Mesh& result, int iNbSegments)

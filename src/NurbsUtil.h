@@ -14,8 +14,8 @@ class Mesh;
 namespace NurbsUtil
 {
 	void create_curve_from_points(const std::vector<Point3>& points, int iDegree, NurbsCurve& n);
-	void create_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n);
-	void create_from_mesh(const Mesh & m, NurbsSolid& n);
+	void create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n);
+	void create_solid_from_mesh(const Mesh & m, NurbsSolid& n);
 	void to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments=5, bool bClearMesh=true);
 	void to_mesh(const NurbsSolid& ns, Mesh& m, int iNbSegments=5);
 	void to_mesh(const NurbsTrimmedSurface& ts, Mesh& m, int iNbSegments = 24, bool bClearMesh = true);
@@ -25,6 +25,17 @@ namespace NurbsUtil
 	double sanitize_weight(double value,double kEpsilonWeight = 1.e-12);
 	std::vector<double> build_safe_weights(const std::vector<double>& weights, int expectedSize);
 	std::vector<double> build_segmented_quadratic_knots(int nbSegments);
+	std::vector<double> build_uniform_knots(int degree, int nbCtrlPoints);
+
+	struct KnotAnalysis
+	{
+		std::vector<double> unique_knots;
+		std::vector<int> multiplicities;
+	};
+	KnotAnalysis analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
+
+
+
 }
 ///////////////////////////////////////////////////////////////////////////
 

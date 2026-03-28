@@ -4,72 +4,72 @@
 
 namespace
 {
-struct Point2
-{
-	double u;
-	double v;
-};
+	struct Point2
+	{
+		double u;
+		double v;
+	};
 
-double orient2d(const Point2& a, const Point2& b, const Point2& c)
-{
-	return (b.u - a.u) * (c.v - a.v) - (b.v - a.v) * (c.u - a.u);
-}
+	double orient2d(const Point2& a, const Point2& b, const Point2& c)
+	{
+		return (b.u - a.u) * (c.v - a.v) - (b.v - a.v) * (c.u - a.u);
+	}
 
-bool on_segment_2d(const Point2& a, const Point2& b, const Point2& p, double eps)
-{
-	if (std::fabs(orient2d(a, b, p)) > eps)
-		return false;
+	bool on_segment_2d(const Point2& a, const Point2& b, const Point2& p, double eps)
+	{
+		if (std::fabs(orient2d(a, b, p)) > eps)
+			return false;
 
-	if ((p.u < std::fmin(a.u, b.u) - eps) || (p.u > std::fmax(a.u, b.u) + eps))
-		return false;
+		if ((p.u < std::fmin(a.u, b.u) - eps) || (p.u > std::fmax(a.u, b.u) + eps))
+			return false;
 
-	if ((p.v < std::fmin(a.v, b.v) - eps) || (p.v > std::fmax(a.v, b.v) + eps))
-		return false;
+		if ((p.v < std::fmin(a.v, b.v) - eps) || (p.v > std::fmax(a.v, b.v) + eps))
+			return false;
 
-	return true;
-}
-
-bool segments_intersect_2d(const Point2& a1, const Point2& a2, const Point2& b1, const Point2& b2, double eps)
-{
-	double o1 = orient2d(a1, a2, b1);
-	double o2 = orient2d(a1, a2, b2);
-	double o3 = orient2d(b1, b2, a1);
-	double o4 = orient2d(b1, b2, a2);
-
-	if (((o1 > eps && o2 < -eps) || (o1 < -eps && o2 > eps)) &&
-		((o3 > eps && o4 < -eps) || (o3 < -eps && o4 > eps)))
 		return true;
+	}
 
-	if (std::fabs(o1) <= eps && on_segment_2d(a1, a2, b1, eps)) return true;
-	if (std::fabs(o2) <= eps && on_segment_2d(a1, a2, b2, eps)) return true;
-	if (std::fabs(o3) <= eps && on_segment_2d(b1, b2, a1, eps)) return true;
-	if (std::fabs(o4) <= eps && on_segment_2d(b1, b2, a2, eps)) return true;
+	bool segments_intersect_2d(const Point2& a1, const Point2& a2, const Point2& b1, const Point2& b2, double eps)
+	{
+		double o1 = orient2d(a1, a2, b1);
+		double o2 = orient2d(a1, a2, b2);
+		double o3 = orient2d(b1, b2, a1);
+		double o4 = orient2d(b1, b2, a2);
 
-	return false;
-}
+		if (((o1 > eps && o2 < -eps) || (o1 < -eps && o2 > eps)) &&
+			((o3 > eps && o4 < -eps) || (o3 < -eps && o4 > eps)))
+			return true;
 
-bool point_in_triangle_2d(const Point2& p, const Point2& a, const Point2& b, const Point2& c, double eps)
-{
-	double o1 = orient2d(a, b, p);
-	double o2 = orient2d(b, c, p);
-	double o3 = orient2d(c, a, p);
+		if (std::fabs(o1) <= eps && on_segment_2d(a1, a2, b1, eps)) return true;
+		if (std::fabs(o2) <= eps && on_segment_2d(a1, a2, b2, eps)) return true;
+		if (std::fabs(o3) <= eps && on_segment_2d(b1, b2, a1, eps)) return true;
+		if (std::fabs(o4) <= eps && on_segment_2d(b1, b2, a2, eps)) return true;
 
-	bool bHasNeg = (o1 < -eps) || (o2 < -eps) || (o3 < -eps);
-	bool bHasPos = (o1 > eps) || (o2 > eps) || (o3 > eps);
+		return false;
+	}
 
-	return !(bHasNeg && bHasPos);
-}
+	bool point_in_triangle_2d(const Point2& p, const Point2& a, const Point2& b, const Point2& c, double eps)
+	{
+		double o1 = orient2d(a, b, p);
+		double o2 = orient2d(b, c, p);
+		double o3 = orient2d(c, a, p);
 
-Point2 project_to_2d(const Point3& p, int iDropAxis)
-{
-	if (iDropAxis == 0)
-		return { p.y(), p.z() };
+		bool bHasNeg = (o1 < -eps) || (o2 < -eps) || (o3 < -eps);
+		bool bHasPos = (o1 > eps) || (o2 > eps) || (o3 > eps);
 
-	if (iDropAxis == 1)
-		return { p.x(), p.z() };
+		return !(bHasNeg && bHasPos);
+	}
 
-	return { p.x(), p.y() };
-}
+	Point2 project_to_2d(const Point3& p, int iDropAxis)
+	{
+		if (iDropAxis == 0)
+			return { p.y(), p.z() };
+
+		if (iDropAxis == 1)
+			return { p.x(), p.z() };
+
+		return { p.x(), p.y() };
+	}
 }
 
 inline double squared(double a) //todo factorize ?
@@ -240,12 +240,12 @@ void Point3::normalize()
 
 void Point3::sanitize()
 {
-    if (!std::isfinite(_x))
-        _x = 0.;
-    if (!std::isfinite(_y))
-        _y = 0.;
-    if (!std::isfinite(_z))
-        _z = 0.;
+	if (!std::isfinite(_x))
+		_x = 0.;
+	if (!std::isfinite(_y))
+		_y = 0.;
+	if (!std::isfinite(_z))
+		_z = 0.;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -545,7 +545,7 @@ bool Triangle3::intersect_with(const Triangle3& t) const
 
 	bool bCoplanar =
 		(std::fabs(dA1) <= EPS && std::fabs(dA2) <= EPS && std::fabs(dA3) <= EPS &&
-		 std::fabs(dB1) <= EPS && std::fabs(dB2) <= EPS && std::fabs(dB3) <= EPS);
+			std::fabs(dB1) <= EPS && std::fabs(dB2) <= EPS && std::fabs(dB3) <= EPS);
 
 	if (!bCoplanar)
 		return false;

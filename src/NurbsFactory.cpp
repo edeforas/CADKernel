@@ -102,18 +102,18 @@ void NurbsFactory::create_filled_surface(const NurbsCurve& nc, NurbsSurface& ns)
 	ns.set_closed_v(false);
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsFactory::create_sphere(double dRadius,NurbsSurface& ns)
+void NurbsFactory::create_sphere(double dRadius, NurbsSurface& ns)
 {
 	ns.clear();
 
 	//create profile curve: half circle
 	NurbsCurve nc;
 	std::vector<Point3> points = {
-		Point3(0., 0.,-1.)* dRadius,
-		Point3(0.,1.,-1.)* dRadius,
-		Point3(0., 1.,0.)* dRadius,
-		Point3(0.,1.,1.)* dRadius,
-		Point3(0.,0.,1.)* dRadius
+		Point3(0., 0.,-1.) * dRadius,
+		Point3(0.,1.,-1.) * dRadius,
+		Point3(0., 1.,0.) * dRadius,
+		Point3(0.,1.,1.) * dRadius,
+		Point3(0.,0.,1.) * dRadius
 	};
 
 	std::vector<double> weights = { 1. , 1. / std::sqrt(2.),1., 1. / std::sqrt(2.), 1. };
@@ -130,10 +130,9 @@ void NurbsFactory::create_sphere(double dRadius,NurbsSurface& ns)
 	{
 		p.y() = -p.y();
 	}
-
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsFactory::create_torus(double dMajorRadius,double dMinorRadius, NurbsSurface& ns)
+void NurbsFactory::create_torus(double dMajorRadius, double dMinorRadius, NurbsSurface& ns)
 {
 	ns.clear();
 
@@ -224,8 +223,8 @@ void NurbsFactory::create_triangle(const Point3& p1, const Point3& p2, const Poi
 ///////////////////////////////////////////////////////////////////////////
 void NurbsFactory::create_quad(const Point3& p1, const Point3& p2, const Point3& p3, const Point3& p4, NurbsSurface& ns)
 {
-	NurbsCurve n1,n2;
-	
+	NurbsCurve n1, n2;
+
 	NurbsUtil::create_curve_from_points({ p1,p2 }, 1, n1);
 	NurbsUtil::create_curve_from_points({ p4,p3 }, 1, n2);
 	NurbsRuled nr;

@@ -6,7 +6,6 @@ using namespace std;
 
 #include "NurbsSurface.h"
 #include "NurbsUtil.h"
-#include "MeshUtil.h"
 #include "Transform.h"
 #include "ImageUtil.h"
 #include "OBJFile.h"
@@ -27,7 +26,7 @@ int main()
 	NurbsSurface n;
 	vector<double> vd;
 	imBW.to_double(vd);
-	NurbsUtil::create_from_z(vd, 64, 64, 3, n);
+	NurbsUtil::create_surface_from_z(vd, 64, 64, 3, n);
 	n.apply_transform(Scale(1., 1., 20. / 255.));
 
 	cout << "Saving NurbsSurface to Obj and step file" << endl;

@@ -8,53 +8,54 @@
 #include "Mesh.h"
 
 #include <cmath>
+#include <algorithm>
 
 namespace
 {
-bool point_in_uv_loop(const std::vector<NurbsUvPoint>& loop, double u, double v)
-{
-	if (loop.size() < 3)
-		return false;
-
-	bool inside = false;
-	for (int i = 0, j = (int)loop.size() - 1; i < (int)loop.size(); j = i++)
+	bool point_in_uv_loop(const std::vector<NurbsUvPoint>& loop, double u, double v)
 	{
-		const double xi = loop[i].u;
-		const double yi = loop[i].v;
-		const double xj = loop[j].u;
-		const double yj = loop[j].v;
+		if (loop.size() < 3)
+			return false;
 
-		const bool intersect = ((yi > v) != (yj > v)) &&
-			(u < (xj - xi) * (v - yi) / ((yj - yi) + 1.e-20) + xi);
+		bool inside = false;
+		for (int i = 0, j = (int)loop.size() - 1; i < (int)loop.size(); j = i++)
+		{
+			const double xi = loop[i].u;
+			const double yi = loop[i].v;
+			const double xj = loop[j].u;
+			const double yj = loop[j].v;
 
-		if (intersect)
-			inside = !inside;
+			const bool intersect = ((yi > v) != (yj > v)) &&
+				(u < (xj - xi) * (v - yi) / ((yj - yi) + 1.e-20) + xi);
+
+			if (intersect)
+				inside = !inside;
+		}
+
+		return inside;
 	}
 
-	return inside;
-}
-
-bool point_inside_trims(const NurbsTrimmedSurface& ts, double u, double v)
-{
-	if (!ts.is_trimmed())
-		return true;
-
-	bool insideOuter = false;
-	bool insideHole = false;
-
-	for (const auto& loop : ts.trim_loops())
+	bool point_inside_trims(const NurbsTrimmedSurface& ts, double u, double v)
 	{
-		if (!point_in_uv_loop(loop.points, u, v))
-			continue;
+		if (!ts.is_trimmed())
+			return true;
 
-		if (loop.hole)
-			insideHole = true;
-		else
-			insideOuter = true;
+		bool insideOuter = false;
+		bool insideHole = false;
+
+		for (const auto& loop : ts.trim_loops())
+		{
+			if (!point_in_uv_loop(loop.points, u, v))
+				continue;
+
+			if (loop.hole)
+				insideHole = true;
+			else
+				insideOuter = true;
+		}
+
+		return insideOuter && !insideHole;
 	}
-
-	return insideOuter && !insideHole;
-}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -81,7 +82,7 @@ void NurbsUtil::create_curve_from_points(const std::vector<Point3>& points, int 
 	n.set_equals_weights();
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsUtil::create_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n)
+void NurbsUtil::create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n)
 {
 	n.clear();
 
@@ -107,7 +108,7 @@ void NurbsUtil::create_from_z(const std::vector<double>& z, int iSizeX, int iSiz
 	n.set_equals_weights();
 }
 ///////////////////////////////////////////////////////////////////////////
-void NurbsUtil::create_from_mesh(const Mesh& m, NurbsSolid& n)
+void NurbsUtil::create_solid_from_mesh(const Mesh& m, NurbsSolid& n)
 {
 	n.clear();
 	for (int i = 0; i < m.nb_triangles(); i++)
@@ -252,33 +253,33 @@ void NurbsUtil::to_mesh(const std::vector<NurbsTrimmedSurface>& trimmedSurfaces,
 		to_mesh(trimmedSurfaces[i], m, iNbSegments, false);
 }
 ///////////////////////////////////////////////////////////////////////////
-double NurbsUtil::sanitize_weight(double value,double kEpsilonWeight )
+double NurbsUtil::sanitize_weight(double value, double kEpsilonWeight)
 {
-    if (!std::isfinite(value))
-        return 1.;
+	if (!std::isfinite(value))
+		return 1.;
 
-    value = std::fabs(value);
-    if (value < kEpsilonWeight)
-        return kEpsilonWeight;
+	value = std::fabs(value);
+	if (value < kEpsilonWeight)
+		return kEpsilonWeight;
 
-    return value;
+	return value;
 }
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_safe_weights(const std::vector<double>& weights, int expectedSize)
 {
-    std::vector<double> safeWeights;
-    safeWeights.reserve(expectedSize);
+	std::vector<double> safeWeights;
+	safeWeights.reserve(expectedSize);
 
-    if ((int)weights.size() != expectedSize)
-    {
-        safeWeights.assign(expectedSize, 1.);
-        return safeWeights;
-    }
+	if ((int)weights.size() != expectedSize)
+	{
+		safeWeights.assign(expectedSize, 1.);
+		return safeWeights;
+	}
 
-    for (int i = 0; i < expectedSize; ++i)
-        safeWeights.push_back(NurbsUtil::sanitize_weight(weights[i]));
+	for (int i = 0; i < expectedSize; ++i)
+		safeWeights.push_back(NurbsUtil::sanitize_weight(weights[i]));
 
-    return safeWeights;
+	return safeWeights;
 }
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_segmented_quadratic_knots(int nbSegments)
@@ -305,3 +306,89 @@ std::vector<double> NurbsUtil::build_segmented_quadratic_knots(int nbSegments)
 	return knots;
 }
 ///////////////////////////////////////////////////////////////////////////
+std::vector<double> NurbsUtil::build_uniform_knots(int degree, int nbCtrlPoints)
+{
+	std::vector<double> knots;
+	if (nbCtrlPoints <= 0)
+		return knots;
+
+	if (degree < 0)
+		degree = 0;
+	if (degree >= nbCtrlPoints)
+		degree = nbCtrlPoints - 1;
+
+	knots.reserve(nbCtrlPoints + degree + 1);
+
+	for (int i = 0; i <= degree; ++i)
+		knots.push_back(0.);
+
+	const int interior = nbCtrlPoints - degree - 1;
+	for (int i = 1; i <= interior; ++i)
+		knots.push_back((double)i);
+
+	for (int i = 0; i <= degree; ++i)
+		knots.push_back((double)(interior + 1));
+
+	if (!knots.empty())
+	{
+		double dMin = knots.front();
+		double dMax = knots.back();
+		if (dMax > dMin)
+			for (auto& k : knots)
+				k = (k - dMin) / (dMax - dMin);
+		else
+			for (auto& k : knots)
+				k = 0.;
+	}
+
+	return knots;
+}
+
+
+
+NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints)
+{
+	KnotAnalysis result;
+
+	std::vector<double> work = knots;
+	const int expectedCount = expectedCtrlPoints + expectedDegree + 1;
+	if (expectedCtrlPoints <= 0)
+		return result;
+
+	if ((int)work.size() != expectedCount)
+		work = NurbsUtil::build_uniform_knots(expectedDegree, expectedCtrlPoints);
+
+	if (work.empty())
+		return result;
+
+	for (auto& k : work)
+	{
+		if (!std::isfinite(k))
+			k = 0;
+	}
+
+	std::sort(work.begin(), work.end());
+
+	const double eps = 1.e-9;
+	double current = work[0];
+	int count = 1;
+	for (int i = 1; i < (int)work.size(); ++i)
+	{
+		if (std::fabs(work[i] - current) <= eps)
+		{
+			count++;
+		}
+		else
+		{
+			result.unique_knots.push_back(current);
+			result.multiplicities.push_back(count);
+			current = work[i];
+			count = 1;
+		}
+	}
+
+	result.unique_knots.push_back(current);
+	result.multiplicities.push_back(count);
+
+	return result;
+}

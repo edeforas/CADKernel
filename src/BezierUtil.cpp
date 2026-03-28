@@ -6,7 +6,7 @@ double BezierUtil::square(double a)
 }
 
 double BezierUtil::cubic(double a)
-{ 
+{
 	return a * a * a;
 }
 

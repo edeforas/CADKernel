@@ -26,7 +26,7 @@ void test_nurbsutil_create_icosahedron()
 	MeshFactory::create_icosahedron(30.,ico);
 	
 	NurbsSolid n;
-	NurbsUtil::create_from_mesh(ico,n);
+	NurbsUtil::create_solid_from_mesh(ico,n);
 
 	NurbsUtil::to_mesh(n, ico_out, 10);
 	OBJFile::save("test_nurbsutil_create_icosahedron_orig.obj", ico);
@@ -43,7 +43,7 @@ void test_nurbsutil_create_dodecahedron()
 	MeshFactory::create_dodecahedron(30., dodec);
 
 	NurbsSolid n;
-	NurbsUtil::create_from_mesh(dodec, n);
+	NurbsUtil::create_solid_from_mesh(dodec, n);
 
 	NurbsUtil::to_mesh(n, dodec_out, 10);
 	OBJFile::save("test_nurbsutil_create_dodecahedron_orig.obj", dodec);

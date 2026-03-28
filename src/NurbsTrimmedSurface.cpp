@@ -5,143 +5,147 @@
 
 namespace
 {
-double uv_dist_sq(const NurbsUvPoint& a, const NurbsUvPoint& b)
-{
-	double du = a.u - b.u;
-	double dv = a.v - b.v;
-	return du * du + dv * dv;
-}
-
-double signed_area(const std::vector<NurbsUvPoint>& poly)
-{
-	if (poly.size() < 3)
-		return 0.;
-
-	double area2 = 0.;
-	for (int i = 0; i < (int)poly.size(); ++i)
+	double uv_dist_sq(const NurbsUvPoint& a, const NurbsUvPoint& b)
 	{
-		const NurbsUvPoint& p0 = poly[i];
-		const NurbsUvPoint& p1 = poly[(i + 1) % poly.size()];
-		area2 += p0.u * p1.v - p1.u * p0.v;
-	}
-	return area2 * 0.5;
-}
-
-double orient2d(const NurbsUvPoint& a, const NurbsUvPoint& b, const NurbsUvPoint& c)
-{
-	return (b.u - a.u) * (c.v - a.v) - (b.v - a.v) * (c.u - a.u);
-}
-
-bool segments_intersect_strict(const NurbsUvPoint& a, const NurbsUvPoint& b, const NurbsUvPoint& c, const NurbsUvPoint& d)
-{
-	const double o1 = orient2d(a, b, c);
-	const double o2 = orient2d(a, b, d);
-	const double o3 = orient2d(c, d, a);
-	const double o4 = orient2d(c, d, b);
-
-	const double eps = 1.e-14;
-	if (std::fabs(o1) <= eps || std::fabs(o2) <= eps || std::fabs(o3) <= eps || std::fabs(o4) <= eps)
-		return false;
-
-	return ((o1 > 0.) != (o2 > 0.)) && ((o3 > 0.) != (o4 > 0.));
-}
-
-bool has_self_intersection(const std::vector<NurbsUvPoint>& poly)
-{
-	const int n = (int)poly.size();
-	if (n < 4)
-		return false;
-
-	for (int i = 0; i < n; ++i)
-	{
-		const int i2 = (i + 1) % n;
-		for (int j = i + 1; j < n; ++j)
-		{
-			const int j2 = (j + 1) % n;
-
-			if (i == j || i2 == j || j2 == i)
-				continue;
-
-			if (segments_intersect_strict(poly[i], poly[i2], poly[j], poly[j2]))
-				return true;
-		}
+		double du = a.u - b.u;
+		double dv = a.v - b.v;
+		return du * du + dv * dv;
 	}
 
-	return false;
-}
-
-void sort_by_angle_around_centroid(std::vector<NurbsUvPoint>& poly)
-{
-	if (poly.size() < 3)
-		return;
-
-	double cu = 0.;
-	double cv = 0.;
-	for (const auto& p : poly)
+	double signed_area(const std::vector<NurbsUvPoint>& poly)
 	{
-		cu += p.u;
-		cv += p.v;
-	}
-	cu /= (double)poly.size();
-	cv /= (double)poly.size();
+		if (poly.size() < 3)
+			return 0.;
 
-	std::sort(poly.begin(), poly.end(), [cu, cv](const NurbsUvPoint& a, const NurbsUvPoint& b)
-	{
-		double aa = std::atan2(a.v - cv, a.u - cu);
-		double ab = std::atan2(b.v - cv, b.u - cu);
-		return aa < ab;
-	});
-}
-
-void remove_collinear(std::vector<NurbsUvPoint>& poly)
-{
-	if (poly.size() < 3)
-		return;
-
-	const double eps = 1.e-12;
-	bool changed = true;
-	while (changed && poly.size() >= 3)
-	{
-		changed = false;
+		double area2 = 0.;
 		for (int i = 0; i < (int)poly.size(); ++i)
 		{
-			int i0 = (i - 1 + (int)poly.size()) % (int)poly.size();
-			int i1 = i;
-			int i2 = (i + 1) % (int)poly.size();
+			const NurbsUvPoint& p0 = poly[i];
+			const NurbsUvPoint& p1 = poly[(i + 1) % poly.size()];
+			area2 += p0.u * p1.v - p1.u * p0.v;
+		}
+		return area2 * 0.5;
+	}
 
-			if (uv_dist_sq(poly[i0], poly[i1]) <= eps || uv_dist_sq(poly[i1], poly[i2]) <= eps)
+	double orient2d(const NurbsUvPoint& a, const NurbsUvPoint& b, const NurbsUvPoint& c)
+	{
+		return (b.u - a.u) * (c.v - a.v) - (b.v - a.v) * (c.u - a.u);
+	}
+
+	bool segments_intersect_strict(const NurbsUvPoint& a, const NurbsUvPoint& b, const NurbsUvPoint& c, const NurbsUvPoint& d)
+	{
+		const double o1 = orient2d(a, b, c);
+		const double o2 = orient2d(a, b, d);
+		const double o3 = orient2d(c, d, a);
+		const double o4 = orient2d(c, d, b);
+
+		const double eps = 1.e-14;
+		if (std::fabs(o1) <= eps || std::fabs(o2) <= eps || std::fabs(o3) <= eps || std::fabs(o4) <= eps)
+			return false;
+
+		return ((o1 > 0.) != (o2 > 0.)) && ((o3 > 0.) != (o4 > 0.));
+	}
+
+	bool has_self_intersection(const std::vector<NurbsUvPoint>& poly)
+	{
+		const int n = (int)poly.size();
+		if (n < 4)
+			return false;
+
+		for (int i = 0; i < n; ++i)
+		{
+			const int i2 = (i + 1) % n;
+			for (int j = i + 1; j < n; ++j)
 			{
-				poly.erase(poly.begin() + i1);
-				changed = true;
-				break;
+				const int j2 = (j + 1) % n;
+
+				if (i == j || i2 == j || j2 == i)
+					continue;
+
+				if (segments_intersect_strict(poly[i], poly[i2], poly[j], poly[j2]))
+					return true;
 			}
+		}
 
-			double cross = std::fabs(orient2d(poly[i0], poly[i1], poly[i2]));
-			if (cross <= eps)
+		return false;
+	}
+
+	void sort_by_angle_around_centroid(std::vector<NurbsUvPoint>& poly)
+	{
+		if (poly.size() < 3)
+			return;
+
+		double cu = 0.;
+		double cv = 0.;
+		for (const auto& p : poly)
+		{
+			cu += p.u;
+			cv += p.v;
+		}
+		cu /= (double)poly.size();
+		cv /= (double)poly.size();
+
+		std::sort(poly.begin(), poly.end(), [cu, cv](const NurbsUvPoint& a, const NurbsUvPoint& b)
+		{
+			double aa = std::atan2(a.v - cv, a.u - cu);
+			double ab = std::atan2(b.v - cv, b.u - cu);
+			return aa < ab;
+		});
+	}
+
+	void remove_collinear(std::vector<NurbsUvPoint>& poly)
+	{
+		if (poly.size() < 3)
+			return;
+
+		const double eps = 1.e-12;
+		bool changed = true;
+		while (changed && poly.size() >= 3)
+		{
+			changed = false;
+			for (int i = 0; i < (int)poly.size(); ++i)
 			{
-				poly.erase(poly.begin() + i1);
-				changed = true;
-				break;
+				int i0 = (i - 1 + (int)poly.size()) % (int)poly.size();
+				int i1 = i;
+				int i2 = (i + 1) % (int)poly.size();
+
+				if (uv_dist_sq(poly[i0], poly[i1]) <= eps || uv_dist_sq(poly[i1], poly[i2]) <= eps)
+				{
+					poly.erase(poly.begin() + i1);
+					changed = true;
+					break;
+				}
+
+				double cross = std::fabs(orient2d(poly[i0], poly[i1], poly[i2]));
+				if (cross <= eps)
+				{
+					poly.erase(poly.begin() + i1);
+					changed = true;
+					break;
+				}
 			}
 		}
 	}
 }
-}
 
 /////////////////////////////////////////////////////////////////////////
-NurbsTrimmedSurface::NurbsTrimmedSurface():NurbsSurface()
-{}
+NurbsTrimmedSurface::NurbsTrimmedSurface() :NurbsSurface()
+{
+}
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::NurbsTrimmedSurface(const NurbsSurface& n) :NurbsSurface(n)
-{}
+{
+}
 /////////////////////////////////////////////////////////////////////////
-NurbsTrimmedSurface::NurbsTrimmedSurface(const NurbsTrimmedSurface& n):
+NurbsTrimmedSurface::NurbsTrimmedSurface(const NurbsTrimmedSurface& n) :
 	NurbsSurface(n),
 	_trimLoops(n._trimLoops)
-{}
+{
+}
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::~NurbsTrimmedSurface()
-{}
+{
+}
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface& NurbsTrimmedSurface::operator=(const NurbsTrimmedSurface& other)
 {
