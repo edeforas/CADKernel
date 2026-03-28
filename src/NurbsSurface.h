@@ -6,6 +6,7 @@
 #include "Geometry.h"
 #include "NurbsCurve.h"
 class Transform;
+class NurbsTrimmedSurface;
 
 ///////////////////////////////////////////////////////////////////////////
 class NurbsSurface
@@ -66,6 +67,8 @@ public:
 	void project_point_on_surface(const Point3& target, double& u, double& v, Point3& projected) const;
 
 	virtual bool is_trimmed() const;
+	virtual NurbsTrimmedSurface* trimming();
+	virtual const NurbsTrimmedSurface* trimming() const;
 
 private:
 	static int find_knot_span(const std::vector <double>& knots, double u);

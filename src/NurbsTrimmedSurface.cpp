@@ -239,6 +239,15 @@ const std::vector<NurbsTrimLoop>& NurbsTrimmedSurface::trim_loops() const
 /////////////////////////////////////////////////////////////////////////
 bool NurbsTrimmedSurface::is_trimmed() const
 {
-	return !_trimLoops.empty();
+	return !(_trimLoops.empty());
 }
-/////////////////////////////////////////////////////////////////////////
+
+NurbsTrimmedSurface* NurbsTrimmedSurface::trimming()
+{
+	return this;
+}
+
+const NurbsTrimmedSurface* NurbsTrimmedSurface::trimming() const
+{
+	return this;
+}

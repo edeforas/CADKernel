@@ -31,6 +31,9 @@ public:
 
 	const std::vector<NurbsTrimLoop>& trim_loops() const;
 	virtual bool is_trimmed() const override;
+	virtual NurbsTrimmedSurface* trimming() override;
+	virtual const NurbsTrimmedSurface* trimming() const override;
+
 
 private:
 	void add_loop(const std::vector<NurbsUvPoint>& loopPoints, bool bHole);

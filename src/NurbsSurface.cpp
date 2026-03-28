@@ -775,11 +775,6 @@ void NurbsSurface::project_point_on_surface(const Point3& target, double& u, dou
 	evaluate(u, v, projected);
 }
 
-bool NurbsSurface::is_trimmed() const
-{
-	return false;
-}
-
 void NurbsSurface::reverse_u()
 {
 	const int nU = nb_points_u();
@@ -817,4 +812,20 @@ NurbsSurface NurbsSurface::reversed_u() const
 	NurbsSurface copy = *this;
 	copy.reverse_u();
 	return copy;
+}
+
+
+bool NurbsSurface::is_trimmed() const
+{
+	return false;
+}
+
+NurbsTrimmedSurface* NurbsSurface::trimming()
+{
+	return 0;
+}
+
+const NurbsTrimmedSurface* NurbsSurface::trimming() const
+{
+	return 0;
 }
