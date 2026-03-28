@@ -8,6 +8,7 @@ using namespace std;
 
 class NurbsSurface;
 class NurbsSolid;
+class NurbsCurve;
 class NurbsTrimmedSurface;
 class Point3;
 
@@ -23,6 +24,7 @@ public:
 
 	void write(const NurbsSurface& n);
 	void write(const NurbsSolid& n);
+	void write(const NurbsCurve& n);
 	void write(const NurbsTrimmedSurface& ts);
 	void write(const vector<NurbsTrimmedSurface>& trimmedSurfaces);
 

@@ -2,6 +2,7 @@
 
 #include "NurbsSolid.h"
 #include "NurbsSurface.h"
+#include "NurbsCurve.h"
 #include "NurbsTrimmedSurface.h"
 #include "Geometry.h"
 #include "NurbsUtil.h"
@@ -497,7 +498,12 @@ int StepWriter::write_advanced_face(const NurbsTrimmedSurface& ts)
 
 	return faceId;
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
+void StepWriter::write(const NurbsCurve& n)
+{
+	//TODO
+}
+////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const NurbsSolid& n)
 {
 	if (!_f.is_open())
@@ -531,7 +537,7 @@ void StepWriter::write(const NurbsSolid& n)
 	_f << "#" << brepId << "=MANIFOLD_SOLID_BREP('',#" << shellId << ");" << endl;
 	queue_representation_item(brepId, REP_ADVANCED_BREP);
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const NurbsSurface& n)
 {
 	if (!_f.is_open())
@@ -544,7 +550,7 @@ void StepWriter::write(const NurbsSurface& n)
 		return;
 	queue_representation_item(surfaceId, REP_SHAPE);
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const NurbsTrimmedSurface& ts)
 {
 	if (!_f.is_open())
@@ -563,7 +569,7 @@ void StepWriter::write(const NurbsTrimmedSurface& ts)
 	_f << "#" << modelId << "=SHELL_BASED_SURFACE_MODEL('',(#" << shellId << "));" << endl;
 	queue_representation_item(modelId, REP_MANIFOLD_SURFACE);
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 void StepWriter::write(const vector<NurbsTrimmedSurface>& trimmedSurfaces)
 {
 	if (!_f.is_open())
@@ -597,7 +603,7 @@ void StepWriter::write(const vector<NurbsTrimmedSurface>& trimmedSurfaces)
 	_f << "#" << modelId << "=SHELL_BASED_SURFACE_MODEL('',(#" << shellId << "));" << endl;
 	queue_representation_item(modelId, REP_MANIFOLD_SURFACE);
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 namespace
 {
 	class StepTextParser
