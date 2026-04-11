@@ -156,6 +156,21 @@ void test_nurbs_boolean_containment()
 	test_bool(d.surfaces().size() == a.surfaces().size() + b.surfaces().size(), "difference containment should add cavity shell");
 }
 
+void test_nurbs_boolean_box_cylinder_difference()
+{
+	cout << endl << "test_nurbs_boolean_box_cylinder_difference" << endl;
+
+	NurbsSolid a, b, d;
+	NurbsFactory::create_box(20., 20., 20., a);
+	NurbsFactory::create_cylinder(6., 30., b);
+
+	NurbsBoolean nb;
+	bool ok = nb.compute_difference(a, b, d);
+	test_bool(ok, "compute_difference should succeed for box minus cylinder");
+	test_bool(!d.surfaces().empty(), "difference result should not be empty");
+	test_bool(d.surfaces().size() > a.surfaces().size(), "difference should add cavity shell surfaces");
+}
+
 void test_nurbs_boolean_partial_overlap_is_reported()
 {
 	cout << endl << "test_nurbs_boolean_partial_overlap_is_reported" << endl;
@@ -513,6 +528,7 @@ int main()
 	test_nurbs_boolean_two_spheres_export();
 	test_nurbs_boolean_disjoint();
 	//test_nurbs_boolean_containment();
+	test_nurbs_boolean_box_cylinder_difference();
 	test_nurbs_boolean_partial_overlap_is_reported();
 	test_nurbs_boolean_trimmed_pipeline_disjoint();
 	//test_nurbs_boolean_trimmed_pipeline_partial_overlap_stub();

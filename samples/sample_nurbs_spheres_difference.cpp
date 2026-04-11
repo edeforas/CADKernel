@@ -24,9 +24,9 @@ int main()
 	sphereB.apply_transform(moveB);
 
 	NurbsBoolean nb;
-	NurbsSolid exactSolidDifference;
-	const bool ok = nb.compute_difference(sphereA, sphereB, exactSolidDifference, nullptr);
-	if (!ok || exactSolidDifference.empty())
+	std::vector<NurbsTrimmedSurface> exactTrimmedDifference;
+	const bool ok = nb.compute_difference(sphereA, sphereB, exactTrimmedDifference, nullptr);
+	if (!ok || exactTrimmedDifference.empty())
 	{
 		std::cerr << "Exact NURBS difference failed for overlapping spheres." << std::endl;
 		return 1;
@@ -39,16 +39,17 @@ int main()
 
 	StepWriter swB;
 	swB.open("sample_nurbs_spheres_B.step");
-	swB.write(sphereB);
+swB.write(sphereB);
 	swB.close();
 
 	StepWriter sw;
 	sw.open("sample_nurbs_spheres_difference.step");
-	sw.write(exactSolidDifference);
+	for (const auto& ts : exactTrimmedDifference)
+		sw.write(ts);
 	sw.close();
 
 	Mesh resultMesh;
-	NurbsUtil::to_mesh(exactSolidDifference, resultMesh, 24);
+	NurbsUtil::to_mesh(exactTrimmedDifference, resultMesh, 24);
 	Mesh sphereAMesh;
 	Mesh sphereBMesh;
 	NurbsUtil::to_mesh(sphereA, sphereAMesh, 24);
