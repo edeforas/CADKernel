@@ -7,7 +7,6 @@
 
 #include "NurbsCurve.h"
 #include "NurbsBasis.h"
-#include "NurbsKnots.h"
 
 ///////////////////////////////////////////////////////////////////////////
 NurbsSurface::NurbsSurface() :
@@ -133,7 +132,7 @@ const std::vector<double>& NurbsSurface::knots_v() const
 
 void NurbsSurface::scale_knots(std::vector<double>& knots)
 {
-	NurbsKnots::normalize_to_01(knots);
+	NurbsBasis::normalize_to_01_knots(knots);
 }
 
 void NurbsSurface::set_weights(const std::vector <double>& weights)
@@ -612,34 +611,6 @@ void NurbsSurface::evaluate_clamped(double u, double v, Point3& p) const
 	evaluate(std::clamp(u, 0.0, 1.0), std::clamp(v, 0.0, 1.0), p);
 }
 
-void NurbsSurface::evaluate_partials(double u, double v, Point3& du, Point3& dv) const
-{
-	const double h = 1.e-4;
-
-	double u1 = std::clamp(u - h, 0.0, 1.0);
-	double u2 = std::clamp(u + h, 0.0, 1.0);
-	double v1 = std::clamp(v - h, 0.0, 1.0);
-	double v2 = std::clamp(v + h, 0.0, 1.0);
-
-	Point3 pu1; evaluate_clamped(u1, v, pu1);
-	Point3 pu2; evaluate_clamped(u2, v, pu2);
-	Point3 pv1; evaluate_clamped(u, v1, pv1);
-	Point3 pv2; evaluate_clamped(u, v2, pv2);
-
-	double duStep = (u2 - u1);
-	double dvStep = (v2 - v1);
-
-	if (duStep <= 0.)
-		du = Point3();
-	else
-		du = (pu2 - pu1) / duStep;
-
-	if (dvStep <= 0.)
-		dv = Point3();
-	else
-		dv = (pv2 - pv1) / dvStep;
-}
-
 
 
 void NurbsSurface::project_point_on_surface(const Point3& target, double& u, double& v, Point3& projected) const
@@ -653,8 +624,8 @@ void NurbsSurface::project_point_on_surface(const Point3& target, double& u, dou
 		evaluate(u, v, p);
 		Point3 r = p - target;
 
-		Point3 du, dv;
-		evaluate_partials(u, v, du, dv);
+		Point3 du, dv, duu, duv, dvv;
+		evaluate_derivatives(u, v, du, dv, duu, duv, dvv);
 
 		double a11 = du.dot_product(du) + 1.e-12;
 		double a12 = du.dot_product(dv);

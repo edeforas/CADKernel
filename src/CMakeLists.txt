@@ -13,32 +13,22 @@ set(CADTEST_FILES
 	
 	Mesh.cpp Mesh.h
 	MeshFactory.cpp MeshFactory.h
-	MeshKernel.cpp MeshKernel.h
-	MeshKernelTIN.cpp MeshKernelTIN.h
-	MeshKernelHalfEdge.cpp MeshKernelHalfEdge.h
 	MeshKernelLinkedTriangles.cpp MeshKernelLinkedTriangles.h
 	MeshMeasurements.cpp MeshMeasurements.h
 	MeshUtil.cpp MeshUtil.h
 	
 	BezierUtil.cpp BezierUtil.h
-	QuadBezierTriangle.cpp QuadBezierTriangle.h
-	CubicBezierTriangles.cpp CubicBezierTriangles.h
 	BezierSurface.cpp BezierSurface.h
-	SmoothMesh.cpp SmoothMesh.h
-	SmoothMeshFactory.cpp SmoothMeshFactory.h
 	
 	MeshTessellate.cpp MeshTessellate.h
 	MeshBoolean.cpp MeshBoolean.h
 	NurbsBoolean.cpp NurbsBoolean.h
-	NurbsBooleanFallback.cpp NurbsBooleanFallback.h
 	NurbsIntersection.cpp NurbsIntersection.h
 	NurbsTrimmedSurface.cpp NurbsTrimmedSurface.h
 	STLFile.cpp STLFile.h
 	OBJFile.cpp OBJFile.h
 	
 	NurbsBasis.cpp NurbsBasis.h
-	NurbsConstants.h
-	NurbsKnots.cpp NurbsKnots.h
 	NurbsCurve.cpp NurbsCurve.h
 	NurbsSurface.cpp NurbsSurface.h
 	NurbsExtrude.cpp NurbsExtrude.h

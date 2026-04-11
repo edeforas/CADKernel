@@ -1,4 +1,5 @@
 #include "NurbsTrimmedSurface.h"
+#include "NurbsCurve.h"
 
 #include <algorithm>
 #include <cmath>
@@ -161,10 +162,36 @@ void NurbsTrimmedSurface::add_outer_loop(const std::vector<NurbsUvPoint>& loopPo
 {
 	add_loop(loopPoints, false);
 }
+
+void NurbsTrimmedSurface::add_full_outer_loop()
+{
+	add_outer_loop({ {0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0},	{0.0, 1.0}	});
+}
+
 /////////////////////////////////////////////////////////////////////////
 void NurbsTrimmedSurface::add_inner_loop(const std::vector<NurbsUvPoint>& loopPoints)
 {
 	add_loop(loopPoints, true);
+}
+/////////////////////////////////////////////////////////////////////////
+void NurbsTrimmedSurface::add_outer_loop(const NurbsCurve& curve)
+{
+	NurbsTrimLoop loop;
+	loop.hole = false;
+	loop.curve = new NurbsCurve(curve);
+	
+	// Don't sample points yet - will be done lazily at mesh time
+	_trimLoops.push_back(loop);
+}
+/////////////////////////////////////////////////////////////////////////
+void NurbsTrimmedSurface::add_inner_loop(const NurbsCurve& curve)
+{
+	NurbsTrimLoop loop;
+	loop.hole = true;
+	loop.curve = new NurbsCurve(curve);
+	
+	// Don't sample points yet - will be done lazily at mesh time
+	_trimLoops.push_back(loop);
 }
 /////////////////////////////////////////////////////////////////////////
 void NurbsTrimmedSurface::add_loop(const std::vector<NurbsUvPoint>& loopPoints, bool bHole)

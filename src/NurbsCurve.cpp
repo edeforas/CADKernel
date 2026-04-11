@@ -5,7 +5,6 @@
 #include <cmath>
 
 #include "NurbsBasis.h"
-#include "NurbsKnots.h"
 
 ///////////////////////////////////////////////////////////////////////////
 NurbsCurve::NurbsCurve() :
@@ -46,7 +45,7 @@ void NurbsCurve::set_knots(const std::vector <double>& knots)
 
 void NurbsCurve::scale_knots(std::vector<double>& knots)
 {
-	NurbsKnots::normalize_to_01(knots);
+	NurbsBasis::normalize_to_01_knots(knots);
 }
 
 void NurbsCurve::set_uniform()
@@ -547,7 +546,7 @@ namespace NurbsCurveUtil
 
 	std::vector<double> build_clamped_uniform_knots(int nbPoints, int degree)
 	{
-		return NurbsKnots::build_clamped_uniform_knots(degree, nbPoints);
+		return NurbsBasis::build_clamped_uniform_knots(degree, nbPoints);
 	}
 
 	bool curves_are_compatible(const NurbsCurve& c1, const NurbsCurve& c2)
@@ -613,7 +612,7 @@ namespace NurbsCurveUtil
 
 	std::vector<double> build_open_uniform_knots(int degree, int nCtrl)
 	{
-		return NurbsKnots::build_open_uniform_knots(degree, nCtrl);
+		return NurbsBasis::build_open_uniform_knots(degree, nCtrl);
 	}
 }
 

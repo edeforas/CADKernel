@@ -15,28 +15,31 @@ using namespace std;
 int main()
 {
 	cout << "NURBS Sweep Sample" << endl;
-	cout << "This sample demonstrates sweeping a circular profile along a sinusoidal path." << endl;
+	cout << "This sample demonstrates sweeping a circular profile along a helical path." << endl;
 	cout << "It creates both a standard sweep and a perpendicular sweep for comparison." << endl;
+	cout << "The helix makes the orientation difference visible in the generated OBJ/STEP output." << endl;
 	cout << endl;
 
 	// Create a profile curve: a circle
 	NurbsCurve profile;
-	NurbsFactory::create_circle(2.0, profile); // radius 2
-	cout << "Created circular profile with radius 2.0" << endl;
+	NurbsFactory::create_circle(1.0, profile); // radius 1
+	cout << "Created circular profile with radius 1.0" << endl;
 
-	// Create a path curve: a smooth sinusoidal path
+	// Create a path curve: a helical 3D curve
 	NurbsCurve path;
 	std::vector<Point3> pathPoints;
 	int numPoints = 20;
 	for (int i = 0; i < numPoints; ++i) {
 		double t = (double)i / (numPoints - 1);
-		double x = 0.0;
-		double y = 5.0 * sin(t * 2.0 * acos(-1.0)); // Sinusoidal in y
+		double angle = t * 2.0 * acos(-1.0) * 2.0; // two full turns
+		double radius = 3.0;
+		double x = radius * cos(angle);
+		double y = radius * sin(angle);
 		double z = t * 10.0;
 		pathPoints.push_back(Point3(x, y, z));
 	}
 	NurbsUtil::create_curve_from_points(pathPoints, 3, path); // degree 3 for smooth curve
-	cout << "Created sinusoidal path with " << numPoints << " control points" << endl;
+	cout << "Created helical path with " << numPoints << " control points" << endl;
 
 	// Sweep the profile along the path to create a surface (standard sweep)
 	cout << "Performing standard sweep (profile orientation fixed)..." << endl;

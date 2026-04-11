@@ -3,6 +3,8 @@
 #include "NurbsTrimmedSurface.h"
 #include "NurbsUtil.h"
 #include "Mesh.h"
+#include "OBJFile.h"
+#include "StepFile.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -19,9 +21,9 @@ void test_bool(bool b, const string& sMessage = "")
 	}
 }
 
-void test_nurbsutil_trimmedsurface_outer_clip()
+void test_nurbs_trimmedsurface_outer_clip()
 {
-	cout << endl << "test_nurbsutil_trimmedsurface_outer_clip" << endl;
+	cout << endl << "test_nurbs_trimmedsurface_outer_clip" << endl;
 
 	NurbsSurface base;
 	NurbsFactory::create_quad(
@@ -48,11 +50,24 @@ void test_nurbsutil_trimmedsurface_outer_clip()
 	test_bool(fullMesh.nb_triangles() > 0, "full mesh should contain triangles");
 	test_bool(trimmedMesh.nb_triangles() > 0, "trimmed mesh should contain triangles");
 	test_bool(trimmedMesh.nb_triangles() < fullMesh.nb_triangles(), "outer clipping should reduce triangle count");
+
+	OBJFile::save("test_nurbs_trimmedsurface_outer_clip_full.obj", fullMesh);
+	OBJFile::save("test_nurbs_trimmedsurface_outer_clip_trimmed.obj", trimmedMesh);
+
+	StepWriter sw1;
+	sw1.open("test_nurbs_trimmedsurface_outer_clip_full.step");
+	sw1.write(base);
+	sw1.close();
+
+	StepWriter sw2;
+	sw2.open("test_nurbs_trimmedsurface_outer_clip_trimmed.step");
+	sw2.write(ts);
+	sw2.close();
 }
 
-void test_nurbsutil_trimmedsurface_hole_clip()
+void test_nurbs_trimmedsurface_hole_clip()
 {
-	cout << endl << "test_nurbsutil_trimmedsurface_hole_clip" << endl;
+	cout << endl << "test_nurbs_trimmedsurface_hole_clip" << endl;
 
 	NurbsSurface base;
 	NurbsFactory::create_quad(
@@ -84,11 +99,24 @@ void test_nurbsutil_trimmedsurface_hole_clip()
 
 	test_bool(holeMesh.nb_triangles() > 0, "hole-trimmed mesh should contain triangles");
 	test_bool(holeMesh.nb_triangles() < fullMesh.nb_triangles(), "hole clipping should reduce triangle count");
+
+	OBJFile::save("test_nurbs_trimmedsurface_hole_clip_full.obj", fullMesh);
+	OBJFile::save("test_nurbs_trimmedsurface_hole_clip_hole.obj", holeMesh);
+
+	StepWriter sw1;
+	sw1.open("test_nurbs_trimmedsurface_hole_clip_full.step");
+	sw1.write(base);
+	sw1.close();
+
+	StepWriter sw2;
+	sw2.open("test_nurbs_trimmedsurface_hole_clip_hole.step");
+	sw2.write(ts);
+	sw2.close();
 }
 
-void test_nurbsutil_trimmedsurface_vector_overload()
+void test_nurbs_trimmedsurface_vector_overload()
 {
-	cout << endl << "test_nurbsutil_trimmedsurface_vector_overload" << endl;
+	cout << endl << "test_nurbs_trimmedsurface_vector_overload" << endl;
 
 	NurbsSurface left, right;
 	NurbsFactory::create_quad(
@@ -115,6 +143,20 @@ void test_nurbsutil_trimmedsurface_vector_overload()
 
 	test_bool(mLeft.nb_triangles() > 0 && mRight.nb_triangles() > 0, "single trimmed meshes should contain triangles");
 	test_bool(mBoth.nb_triangles() == mLeft.nb_triangles() + mRight.nb_triangles(), "vector overload should aggregate meshes");
+
+	OBJFile::save("test_nurbs_trimmedsurface_vector_left.obj", mLeft);
+	OBJFile::save("test_nurbs_trimmedsurface_vector_right.obj", mRight);
+	OBJFile::save("test_nurbs_trimmedsurface_vector_both.obj", mBoth);
+
+	StepWriter sw1;
+	sw1.open("test_nurbs_trimmedsurface_vector_left.step");
+	sw1.write(left);
+	sw1.close();
+
+	StepWriter sw2;
+	sw2.open("test_nurbs_trimmedsurface_vector_right.step");
+	sw2.write(right);
+	sw2.close();
 }
 
 double signed_area_uv(const std::vector<NurbsUvPoint>& loop)
@@ -129,9 +171,9 @@ double signed_area_uv(const std::vector<NurbsUvPoint>& loop)
 	return area2 * 0.5;
 }
 
-void test_nurbsutil_trimmedsurface_loop_autofix()
+void test_nurbs_trimmedsurface_loop_autofix()
 {
-	cout << endl << "test_nurbsutil_trimmedsurface_loop_autofix" << endl;
+	cout << endl << "test_nurbs_trimmedsurface_loop_autofix" << endl;
 
 	NurbsSurface base;
 	NurbsFactory::create_quad(
@@ -172,14 +214,21 @@ void test_nurbsutil_trimmedsurface_loop_autofix()
 	Mesh m;
 	NurbsUtil::to_mesh(ts, m, 22);
 	test_bool(m.nb_triangles() > 0, "autofixed trimmed loop should still generate mesh");
+
+	OBJFile::save("test_nurbs_trimmedsurface_loop_autofix.obj", m);
+
+	StepWriter sw;
+	sw.open("test_nurbs_trimmedsurface_loop_autofix.step");
+	sw.write(ts);
+	sw.close();
 }
 
 int main()
 {
-	test_nurbsutil_trimmedsurface_outer_clip();
-	test_nurbsutil_trimmedsurface_hole_clip();
-	test_nurbsutil_trimmedsurface_vector_overload();
-	test_nurbsutil_trimmedsurface_loop_autofix();
+	test_nurbs_trimmedsurface_outer_clip();
+	test_nurbs_trimmedsurface_hole_clip();
+	test_nurbs_trimmedsurface_vector_overload();
+	test_nurbs_trimmedsurface_loop_autofix();
 
 	cout << "Test Finished.";
 	return 0;

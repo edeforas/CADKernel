@@ -22,7 +22,7 @@ public:
 	bool is_open();
 	void close();
 
-	void write(const NurbsSurface& n, bool bWrapInSolid = true);
+	void write(const NurbsSurface& n, bool bWrapInSolid = false);
 	void write(const NurbsSolid& n);
 	void write(const NurbsCurve& n);
 
@@ -42,6 +42,7 @@ private:
 	int write_curve_entity(const NurbsCurve& n);
 	int write_advanced_face(const NurbsSurface& n);
 	int write_trim_loop_bound(const vector<Point3>& loop, bool bHole);
+	int write_trim_loop_bound_curve(const NurbsCurve& curve, bool bHole);
 	void write_cartesian_point(const Point3& p);
 	void queue_representation_item(int itemId, RepresentationKind kind);
 	void flush_representation();

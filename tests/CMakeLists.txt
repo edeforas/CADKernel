@@ -9,9 +9,6 @@ target_link_libraries(test_geometryutil libCADTest)
 add_executable(test_transform test_transform.cpp  )
 target_link_libraries(test_transform libCADTest)
 
-add_executable(test_smoothmeshfactory "test_smoothmeshfactory.cpp"  )
-target_link_libraries(test_smoothmeshfactory libCADTest)
-
 add_executable(test_mesh_fileformat "test_mesh_fileformat.cpp"  )
 target_link_libraries(test_mesh_fileformat libCADTest)
 
@@ -42,17 +39,14 @@ target_link_libraries(test_mesh_revolve libCADTest)
 add_executable(test_stepfile test_stepfile.cpp  )
 target_link_libraries(test_stepfile libCADTest)
 
-add_executable(test_quadbeziertriangle test_quadbeziertriangle.cpp  )
-target_link_libraries(test_quadbeziertriangle libCADTest)
-
 add_executable(test_nurbscurve test_nurbscurve.cpp  )
 target_link_libraries(test_nurbscurve libCADTest)
 
 add_executable(test_nurbsutil test_nurbsutil.cpp  )
 target_link_libraries(test_nurbsutil libCADTest)
 
-add_executable(test_nurbsutil_trimmedsurface test_nurbsutil_trimmedsurface.cpp  )
-target_link_libraries(test_nurbsutil_trimmedsurface libCADTest)
+add_executable(test_nurbs_trimmedsurface test_nurbs_trimmedsurface.cpp  )
+target_link_libraries(test_nurbs_trimmedsurface libCADTest)
 
 add_executable(test_nurbsfactory test_nurbsfactory.cpp  )
 target_link_libraries(test_nurbsfactory libCADTest)
@@ -95,12 +89,9 @@ add_test(test_meshboolean test_meshboolean)
 add_test(test_stepfile test_stepfile)
 add_test(test_mesh_revolve test_mesh_revolve)
 
-add_test(test_smoothmeshfactory test_smoothmeshfactory)
-add_test(test_quadbeziertriangle test_quadbeziertriangle)
-
 add_test(test_nurbscurve test_nurbscurve)
 add_test(test_nurbsutil test_nurbsutil)
-add_test(test_nurbsutil_trimmedsurface test_nurbsutil_trimmedsurface)
+add_test(test_nurbs_trimmedsurface test_nurbs_trimmedsurface)
 add_test(test_nurbfactory test_nurbsfactory)
 add_test(test_nurbssurface test_nurbssurface)
 add_test(test_nurbsextrude test_nurbsextrude)

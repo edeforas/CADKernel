@@ -1,5 +1,6 @@
 #include "StepFile.h"
 
+#include "NurbsBasis.h"
 #include "NurbsSolid.h"
 #include "NurbsSurface.h"
 #include "NurbsTrimmedSurface.h"
@@ -108,7 +109,7 @@ void StepWriter::write_header()
 	_f << "HEADER;" << endl;
 	_f << "FILE_DESCRIPTION(('NURBS export from CADKernel'),'2;1');" << endl;
 	_f << "FILE_NAME('" << _sNameFile << "','2026-03-02T00:00:00',('CADKernel'),('CADKernel'),'CADKernel StepWriter','CADKernel','');" << endl;
-	_f << "FILE_SCHEMA(('AUTOMOTIVE_DESIGN_CC2'));" << endl;
+	_f << "FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }'));" << endl;
 	_f << "ENDSEC;" << endl;
 	_f << "DATA;" << endl;
 
@@ -224,7 +225,7 @@ void StepWriter::write_cartesian_point(const Point3& p)
 
 	const int id = next_id();
 	_f << std::uppercase << "#" << id << "=CARTESIAN_POINT('',("
-		<< sanitize_double(p.x()) << ","
+		<< std::showpoint << sanitize_double(p.x()) << ","
 		<< sanitize_double(p.y()) << ","
 		<< sanitize_double(p.z()) << "));" << endl;
 }
@@ -248,8 +249,18 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	if (degreeV >= nV) degreeV = nV - 1;
 
 	std::vector<double> weights = sanitize_weights_step(n.weights(), nU * nV);
-	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(n.knots_u(), degreeU, nU);
-	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(n.knots_v(), degreeV, nV);
+	
+	// Build uniform knots if the provided ones are invalid
+	std::vector<double> knotsU = n.knots_u();
+	std::vector<double> knotsV = n.knots_v();
+	
+	if ((int)knotsU.size() != degreeU + nU + 1)
+		knotsU = NurbsBasis::build_uniform_knots(degreeU, nU);
+	if ((int)knotsV.size() != degreeV + nV + 1)
+		knotsV = NurbsBasis::build_uniform_knots(degreeV, nV);
+	
+	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(knotsU, degreeU, nU);
+	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(knotsV, degreeV, nV);
 	if (uDataOrig.unique_knots.empty() || vDataOrig.unique_knots.empty())
 		return -1;
 
@@ -284,7 +295,7 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 		_f << "(";
 		for (int v = 0; v < nV; ++v)
 		{
-			_f << "#" << (firstPointId + v * nU + u);
+			_f << "#" << (firstPointId + u + v * nU);
 			if (v + 1 < nV)
 				_f << ",";
 		}
@@ -331,17 +342,17 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	_f << "GEOMETRIC_REPRESENTATION_ITEM()" << endl;
 
 	_f << "RATIONAL_B_SPLINE_SURFACE((" << endl;
-	for (int v = 0; v < nV; ++v)
+	for (int u = 0; u < nU; ++u)
 	{
 		_f << "(";
-		for (int u = 0; u < nU; ++u)
+		for (int v = 0; v < nV; ++v)
 		{
-			_f << sanitize_double(weights[v * nU + u]);
-			if (u + 1 < nU)
+			_f << std::showpoint << sanitize_double(weights[u + v * nU]);
+			if (v + 1 < nV)
 				_f << ",";
 		}
 		_f << ")";
-		if (v + 1 < nV)
+		if (u + 1 < nU)
 			_f << ",";
 		_f << endl;
 	}

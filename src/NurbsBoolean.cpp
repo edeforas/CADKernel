@@ -1261,9 +1261,8 @@ bool NurbsBoolean::boolean_difference_bbox(const NurbsSolid& a, const NurbsSolid
 		result.append(a);
 		return true;
 	case BBoxRelation::AContainsB:
-		result.append(a);
-		result.append(b);
-		return true;
+		// Cannot determine a trimmed difference from bounding boxes when B is contained inside A.
+		return false;
 	case BBoxRelation::BContainsA:
 		return true;
 	case BBoxRelation::PartialOverlap:
@@ -1331,5 +1330,22 @@ bool NurbsBoolean::compute_difference(const NurbsSolid& a, const NurbsSolid& b, 
 	for (const auto& ts : trimmedResult)
 		result.add_surface(ts);
 	return true;
+}
+
+bool NurbsBoolean::compute_difference(const NurbsSolid& a, const NurbsSolid& b, std::vector<NurbsTrimmedSurface>& result, NurbsIntersectionResult* diagnostics) const
+{
+	reset_diagnostics(diagnostics);
+
+	NurbsSolid solidResult;
+	if (boolean_difference_bbox(a, b, solidResult))
+	{
+		result.clear();
+		result.reserve(solidResult.surfaces().size());
+		for (const auto& s : solidResult.surfaces())
+			result.emplace_back(s);
+		return true;
+	}
+
+	return build_partial_overlap_exact_trimmed(a, b, ExactTrimmedOperation::Difference, result, diagnostics);
 }
 //////////////////////////////////////////////////////////////////////////////////

@@ -11,7 +11,7 @@
 using namespace std;
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI (3.14159265358979323846)
 #endif
 
 // Parametric equations for a Mobius strip
@@ -52,9 +52,8 @@ int main()
     NurbsRuled nr;
     nr.create_ruled(n1, n2, ns);
 
-    cout << "Successfully created Mobius strip NURBS surface" << endl;
-    cout << "Surface degree: (" << ns.degree_u() << ", " << ns.degree_v() << ")" << endl;
-    cout << "Control points: " << ns.nb_points_u() << " x " << ns.nb_points_v() << endl;
+    cout << "Nurbs Surface degree: (" << ns.degree_u() << ", " << ns.degree_v() << ")" << endl;
+    cout << "Nurbs Control points: " << ns.nb_points_u() << " x " << ns.nb_points_v() << endl;
 
     // Write to STEP file
     StepWriter sw;
@@ -65,13 +64,10 @@ int main()
     // Convert to mesh and write to OBJ file
     Mesh mesh;
     NurbsUtil::to_mesh(ns, mesh, 16);  
-
     OBJWriter ow;
     ow.open("sample_mobius_strip.obj");
     ow.write(mesh);
     ow.close();
-
-    cout << "Mobius strip written to sample_mobius_strip.step and sample_mobius_strip.obj" << endl;
     cout << "Mesh has " << mesh.nb_vertices() << " vertices and " << mesh.nb_triangles() << " triangles" << endl;
 
     return 0;

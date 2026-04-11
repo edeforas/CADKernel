@@ -71,7 +71,6 @@ public:
 	void evaluate(double u, double v, Point3& p) const;
 	void evaluate_clamped(double u, double v, Point3& p) const;
 	void evaluate_derivatives(double u, double v, Point3& du, Point3& dv, Point3& duu, Point3& duv, Point3& dvv) const;
-	void evaluate_partials(double u, double v, Point3& du, Point3& dv) const;
 	bool normal(double u, double v, Point3& n) const;
 	bool curvature(double u, double v, double& gaussian, double& mean) const;
 	void project_point_on_surface(const Point3& target, double& u, double& v, Point3& projected) const;

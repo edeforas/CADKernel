@@ -2,7 +2,7 @@
 #define _Mesh_
 
 #include "Geometry.h"
-class MeshKernel;
+class MeshKernelLinkedTriangles;
 class Transform;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -53,7 +53,7 @@ public:
     bool empty() const;
 
 private:
-	MeshKernel* _pKernel;
+	MeshKernelLinkedTriangles* _pKernel;
     int _iColor; //-1 for no custom color
 };
 ///////////////////////////////////////////////////////////////////////////

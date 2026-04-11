@@ -30,6 +30,9 @@ target_link_libraries(sample_nurbs_factory libCADTest)
 add_executable(sample_nurbs_fitting sample_nurbs_fitting.cpp )
 target_link_libraries(sample_nurbs_fitting libCADTest)
 
+add_executable(sample_nurbs_surface_degree sample_nurbs_surface_degree.cpp )
+target_link_libraries(sample_nurbs_surface_degree libCADTest)
+
 add_executable(sample_nurbs_sweep sample_nurbs_sweep.cpp )
 target_link_libraries(sample_nurbs_sweep libCADTest)
 
@@ -47,3 +50,6 @@ target_link_libraries(sample_nurbs_cube_cylinder_difference libCADTest)
 
 add_executable(sample_nurbs_curve_continuity sample_nurbs_curve_continuity.cpp)
 target_link_libraries(sample_nurbs_curve_continuity libCADTest)
+
+add_executable(sample_trimmed_nurbs_surface sample_trimmed_nurbs_surface.cpp)
+target_link_libraries(sample_trimmed_nurbs_surface libCADTest)

@@ -1,5 +1,4 @@
 #include "NurbsBoolean.h"
-#include "NurbsBooleanFallback.h"
 #include "NurbsIntersection.h"
 
 #include "NurbsFactory.h"
@@ -154,6 +153,21 @@ void test_nurbs_boolean_containment()
 	test_bool(u.surfaces().size() == a.surfaces().size(), "union containment should keep outer shell");
 	test_bool(i.surfaces().size() == b.surfaces().size(), "intersection containment should keep inner shell");
 	test_bool(d.surfaces().size() == a.surfaces().size() + b.surfaces().size(), "difference containment should add cavity shell");
+}
+
+void test_nurbs_boolean_box_cylinder_difference()
+{
+	cout << endl << "test_nurbs_boolean_box_cylinder_difference" << endl;
+
+	NurbsSolid a, b, d;
+	NurbsFactory::create_box(20., 20., 20., a);
+	NurbsFactory::create_cylinder(6., 30., b);
+
+	NurbsBoolean nb;
+	bool ok = nb.compute_difference(a, b, d);
+	test_bool(ok, "compute_difference should succeed for box minus cylinder");
+	test_bool(!d.surfaces().empty(), "difference result should not be empty");
+	test_bool(d.surfaces().size() > a.surfaces().size(), "difference should add cavity shell surfaces");
 }
 
 void test_nurbs_boolean_partial_overlap_is_reported()
@@ -352,38 +366,6 @@ void test_nurbs_boolean_trimmed_intersection_torus_sphere_overlap_export()
 	test_bool(inCurves.is_open(), "torus-sphere diagnostics curves obj should exist");
 }
 
-void test_nurbs_boolean_mesh_fallback_torus_sphere_export()
-{
-	cout << endl << "test_nurbs_boolean_mesh_fallback_torus_sphere_export" << endl;
-
-	NurbsSolid torus, sphere;
-	NurbsFactory::create_torus(8., 2., torus);
-	NurbsFactory::create_sphere(8., sphere);
-
-	Mesh u, i, d;
-	NurbsBooleanFallback::union_mesh(torus, sphere, u, 28);
-	NurbsBooleanFallback::intersection_mesh(torus, sphere, i, 28);
-	NurbsBooleanFallback::difference_mesh(torus, sphere, d, 28);
-
-	test_bool(u.nb_triangles() > 0, "fallback mesh union should contain triangles");
-	test_bool(i.nb_triangles() > 0, "fallback mesh intersection should contain triangles");
-	test_bool(d.nb_triangles() > 0, "fallback mesh difference should contain triangles");
-
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_union.obj", u),
-		"fallback union obj export should succeed");
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_intersection.obj", i),
-		"fallback intersection obj export should succeed");
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_difference.obj", d),
-		"fallback difference obj export should succeed");
-
-	ifstream inU("test_nurbs_boolean_mesh_fallback_torus_sphere_union.obj");
-	ifstream inI("test_nurbs_boolean_mesh_fallback_torus_sphere_intersection.obj");
-	ifstream inD("test_nurbs_boolean_mesh_fallback_torus_sphere_difference.obj");
-	test_bool(inU.is_open(), "fallback union obj should exist");
-	test_bool(inI.is_open(), "fallback intersection obj should exist");
-	test_bool(inD.is_open(), "fallback difference obj should exist");
-}
-
 void test_nurbs_boolean_exact_trimmed_torus_sphere_export()
 {
 	cout << endl << "test_nurbs_boolean_exact_trimmed_torus_sphere_export" << endl;
@@ -513,6 +495,7 @@ int main()
 	test_nurbs_boolean_two_spheres_export();
 	test_nurbs_boolean_disjoint();
 	//test_nurbs_boolean_containment();
+	test_nurbs_boolean_box_cylinder_difference();
 	test_nurbs_boolean_partial_overlap_is_reported();
 	test_nurbs_boolean_trimmed_pipeline_disjoint();
 	//test_nurbs_boolean_trimmed_pipeline_partial_overlap_stub();

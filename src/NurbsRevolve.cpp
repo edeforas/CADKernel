@@ -1,18 +1,16 @@
 #include "NurbsRevolve.h"
-
-#include <cmath>
-
 #include "NurbsCurve.h"
-#include "NurbsConstants.h"
 #include "NurbsSurface.h"
 #include "NurbsUtil.h"
+#include "NurbsBasis.h"
 
+#include <cmath>
 #include <algorithm>
 #include <vector>
 
 namespace
 {
-	constexpr double kPi = NurbsConstants::Pi;
+	constexpr double kPi = NurbsBasis::Pi;
 
 	Point3 rotate_about_z(const Point3& p, double a)
 	{
@@ -130,7 +128,7 @@ bool NurbsRevolve::revolve(const NurbsCurve& nc, double dAngleRad, NurbsSurface&
 
 	ns.set_degree(2, nc.degree());
 	ns.set_points(pc, nbCtrlU, nc.nb_points());
-	ns.set_knots_u(NurbsUtil::build_segmented_quadratic_knots(nbSegments));
+	ns.set_knots_u(NurbsBasis::build_segmented_quadratic_knots(nbSegments));
 	ns.set_knots_v(nc.knots());
 	ns.set_weights(wc);
 

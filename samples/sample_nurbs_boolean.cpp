@@ -1,5 +1,4 @@
 #include "NurbsBoolean.h"
-#include "NurbsBooleanFallback.h"
 #include "NurbsIntersection.h"
 
 #include "NurbsFactory.h"
@@ -47,25 +46,6 @@ int main()
 	o.open("sample_meshboolean.obj");
 	o.write(diffMeshApprox);
 	o.close();
-
-	NurbsBooleanFallback fallback;
-	NurbsSolid solidResult;
-	if (nb.compute_difference(torus, sphere, solidResult, nullptr))
-	{
-		Mesh diffMeshFallback;
-		NurbsUtil::to_mesh(solidResult, diffMeshFallback);
-		o.open("sample_nurbsboolean_fallback.obj");
-		o.write(diffMeshFallback);
-		o.close(); 
-	} 
-	else
-	{
-		Mesh diffMeshFallback;
-		fallback.difference_mesh(torus, sphere, diffMeshFallback);
-		o.open("sample_nurbsboolean_fallback.obj");
-		o.write(diffMeshFallback);
-		o.close();
-	}
 
 	return 0;
 }

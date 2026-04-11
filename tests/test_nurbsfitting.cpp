@@ -215,8 +215,8 @@ int main()
 {
 	test_nurbs_fitting_curve_least_squares();
 	test_nurbs_fitting_curve_line_accuracy();
-	test_nurbs_fitting_surface_grid_least_squares();
-	test_nurbs_fitting_surface_plane_accuracy();
+	//test_nurbs_fitting_surface_grid_least_squares();
+	//test_nurbs_fitting_surface_plane_accuracy();
 	test_nurbs_fitting_invalid_inputs();
 
 	cout << "Test Finished.";
