@@ -1,6 +1,8 @@
 #include "NurbsCurve.h"
 #include "NurbsSurface.h"
 #include "NurbsSweep.h"
+#include "NurbsFactory.h"
+#include "NurbsUtil.h"
 
 #include <iostream>
 #include <cmath>
@@ -121,11 +123,82 @@ void test_sweep_propagates_closed_flags()
 	test_bool(std::isfinite(p.x()) && std::isfinite(p.y()) && std::isfinite(p.z()), "evaluated point should be finite");
 }
 
+void test_sweep_perpendicular_rotates_profile_plane()
+{
+	cout << endl << "test_sweep_perpendicular_rotates_profile_plane" << endl;
+
+	NurbsCurve profile;
+	profile.set_degree(1);
+	profile.set_points({ Point3(1., 1., 0.), Point3(-1., 1., 0.) });
+	profile.set_knots({ 0., 0., 1., 1. });
+	profile.set_weights({ 1., 1. });
+
+	NurbsCurve path;
+	path.set_degree(1);
+	path.set_points({ Point3(0., 0., 0.), Point3(0., 1., 0.) });
+	path.set_knots({ 0., 0., 1., 1. });
+	path.set_weights({ 1., 1. });
+
+	NurbsSurface surface;
+	bool ok = NurbsSweep::sweep(profile, path, surface, true);
+	test_bool(ok, "perpendicular sweep should succeed");
+
+	Point3 p;
+	surface.evaluate(0.25, 0.5, p);
+	test_bool(std::abs(p.z()) > 1.e-6, "perpendicular sweep should produce non-planar points");
+}
+
+void test_sweep_perpendicular_minimizes_torsion()
+{
+	cout << endl << "test_sweep_perpendicular_minimizes_torsion" << endl;
+
+	NurbsCurve profile;
+	profile.set_degree(1);
+	profile.set_points({ Point3(1., 0., 0.), Point3(-1., 0., 0.) });
+	profile.set_knots({ 0., 0., 1., 1. });
+	profile.set_weights({ 1., 1. });
+
+	NurbsCurve path;
+	path.set_degree(1);
+	path.set_points({
+		Point3(1., 0., 0.),
+		Point3(0.7, 0.7, 0.5),
+		Point3(0., 1., 1.),
+		Point3(-0.7, 0.7, 1.5),
+		Point3(-1., 0., 2.)
+	});
+	path.set_uniform();
+	path.set_equals_weights();
+
+	NurbsSurface surface;
+	bool ok = NurbsSweep::sweep(profile, path, surface, true);
+	test_bool(ok, "perpendicular sweep should succeed");
+
+	Point3 prevDir;
+	bool hasPrev = false;
+	for (int j = 0; j < 5; ++j) {
+		double v = j / 4.0;
+		Point3 p0, p1;
+		surface.evaluate(0.0, v, p0);
+		surface.evaluate(1.0, v, p1);
+		Point3 dir = p1 - p0;
+		dir.normalize();
+		if (hasPrev) {
+			double alignment = dir.dot_product(prevDir);
+			test_bool(alignment > 0.8, "consecutive profile orientations should remain smooth");
+		}
+		prevDir = dir;
+		hasPrev = true;
+	}
+}
+
 int main()
 {
 	test_sweep_linear_segment_along_line();
 	test_sweep_recovers_from_invalid_knots_weights_and_degree();
 	test_sweep_propagates_closed_flags();
+	test_sweep_perpendicular_rotates_profile_plane();
+	test_sweep_perpendicular_minimizes_torsion();
 
 	cout << "Test Finished.";
 	return 0;
