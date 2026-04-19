@@ -248,8 +248,18 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	if (degreeV >= nV) degreeV = nV - 1;
 
 	std::vector<double> weights = sanitize_weights_step(n.weights(), nU * nV);
-	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(n.knots_u(), degreeU, nU);
-	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(n.knots_v(), degreeV, nV);
+	
+	// Build uniform knots if the provided ones are invalid
+	std::vector<double> knotsU = n.knots_u();
+	std::vector<double> knotsV = n.knots_v();
+	
+	if ((int)knotsU.size() != degreeU + nU + 1)
+		knotsU = NurbsUtil::build_uniform_knots(degreeU, nU);
+	if ((int)knotsV.size() != degreeV + nV + 1)
+		knotsV = NurbsUtil::build_uniform_knots(degreeV, nV);
+	
+	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(knotsU, degreeU, nU);
+	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(knotsV, degreeV, nV);
 	if (uDataOrig.unique_knots.empty() || vDataOrig.unique_knots.empty())
 		return -1;
 
@@ -284,7 +294,7 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 		_f << "(";
 		for (int v = 0; v < nV; ++v)
 		{
-			_f << "#" << (firstPointId + v * nU + u);
+			_f << "#" << (firstPointId + u + v * nU);
 			if (v + 1 < nV)
 				_f << ",";
 		}
@@ -331,17 +341,17 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	_f << "GEOMETRIC_REPRESENTATION_ITEM()" << endl;
 
 	_f << "RATIONAL_B_SPLINE_SURFACE((" << endl;
-	for (int v = 0; v < nV; ++v)
+	for (int u = 0; u < nU; ++u)
 	{
 		_f << "(";
-		for (int u = 0; u < nU; ++u)
+		for (int v = 0; v < nV; ++v)
 		{
-			_f << sanitize_double(weights[v * nU + u]);
-			if (u + 1 < nU)
+			_f << sanitize_double(weights[u + v * nU]);
+			if (v + 1 < nV)
 				_f << ",";
 		}
 		_f << ")";
-		if (v + 1 < nV)
+		if (u + 1 < nU)
 			_f << ",";
 		_f << endl;
 	}

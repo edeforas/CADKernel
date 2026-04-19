@@ -5,7 +5,6 @@
 #include "StepFile.h"
 
 #include <iostream>
-#include <cassert>
 #include <cmath>
 #include <cstdlib>
 using namespace std;
@@ -15,7 +14,7 @@ int main()
 {
 	cout << endl << "sample_nurbs_surface_degree" << endl;
 
-	int nbPointsU = 7;
+	int nbPointsU = 9;
 	int nbPointsV = 7;
 	OBJWriter ow;
 	ow.open("sample_nurbs_surface_degree.obj");
@@ -50,7 +49,7 @@ int main()
 
 			Mesh m;
 			NurbsUtil::to_mesh(n, m, 10);
-			m.set_color((uDeg * 50 + 100) * 256 * 256 + (vDeg * 50 + 100) * 256); //red is degu , green is degv
+
 			ow.write(m);
 			sw.write(n);
 		}
