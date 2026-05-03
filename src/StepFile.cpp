@@ -108,7 +108,7 @@ void StepWriter::write_header()
 	_f << "HEADER;" << endl;
 	_f << "FILE_DESCRIPTION(('NURBS export from CADKernel'),'2;1');" << endl;
 	_f << "FILE_NAME('" << _sNameFile << "','2026-03-02T00:00:00',('CADKernel'),('CADKernel'),'CADKernel StepWriter','CADKernel','');" << endl;
-	_f << "FILE_SCHEMA(('AUTOMOTIVE_DESIGN_CC2'));" << endl;
+	_f << "FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }'));" << endl;
 	_f << "ENDSEC;" << endl;
 	_f << "DATA;" << endl;
 
@@ -224,7 +224,7 @@ void StepWriter::write_cartesian_point(const Point3& p)
 
 	const int id = next_id();
 	_f << std::uppercase << "#" << id << "=CARTESIAN_POINT('',("
-		<< sanitize_double(p.x()) << ","
+		<< std::showpoint << sanitize_double(p.x()) << ","
 		<< sanitize_double(p.y()) << ","
 		<< sanitize_double(p.z()) << "));" << endl;
 }
@@ -346,7 +346,7 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 		_f << "(";
 		for (int v = 0; v < nV; ++v)
 		{
-			_f << sanitize_double(weights[u + v * nU]);
+			_f << std::showpoint << sanitize_double(weights[u + v * nU]);
 			if (v + 1 < nV)
 				_f << ",";
 		}
