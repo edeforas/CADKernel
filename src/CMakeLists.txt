@@ -29,7 +29,6 @@ set(CADTEST_FILES
 	OBJFile.cpp OBJFile.h
 	
 	NurbsBasis.cpp NurbsBasis.h
-	NurbsKnots.cpp NurbsKnots.h
 	NurbsCurve.cpp NurbsCurve.h
 	NurbsSurface.cpp NurbsSurface.h
 	NurbsExtrude.cpp NurbsExtrude.h

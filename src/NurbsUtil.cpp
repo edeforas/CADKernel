@@ -1,4 +1,5 @@
 #include "NurbsUtil.h"
+#include "NurbsBasis.h"
 
 #include "NurbsCurve.h"
 #include "NurbsSurface.h"
@@ -7,7 +8,6 @@
 #include "NurbsFactory.h"
 #include "BezierSurface.h"
 #include "Mesh.h"
-#include "NurbsKnots.h"
 
 #include <cmath>
 #include <algorithm>
@@ -361,14 +361,13 @@ std::vector<double> NurbsUtil::build_safe_weights(const std::vector<double>& wei
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_segmented_quadratic_knots(int nbSegments)
 {
-	return NurbsKnots::build_segmented_quadratic_knots(nbSegments);
+	return NurbsBasis::build_segmented_quadratic_knots(nbSegments);
 }
 ///////////////////////////////////////////////////////////////////////////
 std::vector<double> NurbsUtil::build_uniform_knots(int degree, int nbCtrlPoints)
 {
-	return NurbsKnots::build_uniform_knots(degree, nbCtrlPoints);
+	return NurbsBasis::build_uniform_knots(degree, nbCtrlPoints);
 }
-
 
 
 NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints)

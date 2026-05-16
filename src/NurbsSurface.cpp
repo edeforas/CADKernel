@@ -7,7 +7,6 @@
 
 #include "NurbsCurve.h"
 #include "NurbsBasis.h"
-#include "NurbsKnots.h"
 
 ///////////////////////////////////////////////////////////////////////////
 NurbsSurface::NurbsSurface() :
@@ -133,7 +132,7 @@ const std::vector<double>& NurbsSurface::knots_v() const
 
 void NurbsSurface::scale_knots(std::vector<double>& knots)
 {
-	NurbsKnots::normalize_to_01(knots);
+	NurbsBasis::normalize_to_01_knots(knots);
 }
 
 void NurbsSurface::set_weights(const std::vector <double>& weights)
