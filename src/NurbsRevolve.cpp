@@ -1,18 +1,16 @@
 #include "NurbsRevolve.h"
-
-#include <cmath>
-
 #include "NurbsCurve.h"
-#include "NurbsConstants.h"
 #include "NurbsSurface.h"
 #include "NurbsUtil.h"
+#include "NurbsBasis.h"
 
+#include <cmath>
 #include <algorithm>
 #include <vector>
 
 namespace
 {
-	constexpr double kPi = NurbsConstants::Pi;
+	constexpr double kPi = NurbsBasis::Pi;
 
 	Point3 rotate_about_z(const Point3& p, double a)
 	{
