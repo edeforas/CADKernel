@@ -358,17 +358,6 @@ std::vector<double> NurbsUtil::build_safe_weights(const std::vector<double>& wei
 
 	return safeWeights;
 }
-///////////////////////////////////////////////////////////////////////////
-std::vector<double> NurbsUtil::build_segmented_quadratic_knots(int nbSegments)
-{
-	return NurbsBasis::build_segmented_quadratic_knots(nbSegments);
-}
-///////////////////////////////////////////////////////////////////////////
-std::vector<double> NurbsUtil::build_uniform_knots(int degree, int nbCtrlPoints)
-{
-	return NurbsBasis::build_uniform_knots(degree, nbCtrlPoints);
-}
-
 
 NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints)
 {
@@ -380,7 +369,7 @@ NurbsUtil::KnotAnalysis NurbsUtil::analyze_knots(const std::vector<double>& knot
 		return result;
 
 	if ((int)work.size() != expectedCount)
-		work = NurbsUtil::build_uniform_knots(expectedDegree, expectedCtrlPoints);
+		work = NurbsBasis::build_uniform_knots(expectedDegree, expectedCtrlPoints);
 
 	if (work.empty())
 		return result;

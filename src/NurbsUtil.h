@@ -33,8 +33,6 @@ namespace NurbsUtil
 
 	double sanitize_weight(double value,double kEpsilonWeight = 1.e-12);
 	std::vector<double> build_safe_weights(const std::vector<double>& weights, int expectedSize);
-	std::vector<double> build_segmented_quadratic_knots(int nbSegments);
-	std::vector<double> build_uniform_knots(int degree, int nbCtrlPoints);
 
 	KnotAnalysis analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
 

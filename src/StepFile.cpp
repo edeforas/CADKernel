@@ -1,5 +1,6 @@
 #include "StepFile.h"
 
+#include "NurbsBasis.h"
 #include "NurbsSolid.h"
 #include "NurbsSurface.h"
 #include "NurbsTrimmedSurface.h"
@@ -254,9 +255,9 @@ int StepWriter::write_surface_entity(const NurbsSurface& n)
 	std::vector<double> knotsV = n.knots_v();
 	
 	if ((int)knotsU.size() != degreeU + nU + 1)
-		knotsU = NurbsUtil::build_uniform_knots(degreeU, nU);
+		knotsU = NurbsBasis::build_uniform_knots(degreeU, nU);
 	if ((int)knotsV.size() != degreeV + nV + 1)
-		knotsV = NurbsUtil::build_uniform_knots(degreeV, nV);
+		knotsV = NurbsBasis::build_uniform_knots(degreeV, nV);
 	
 	const NurbsUtil::KnotAnalysis uDataOrig = NurbsUtil::analyze_knots(knotsU, degreeU, nU);
 	const NurbsUtil::KnotAnalysis vDataOrig = NurbsUtil::analyze_knots(knotsV, degreeV, nV);
