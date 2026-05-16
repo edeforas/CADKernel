@@ -4,7 +4,6 @@
 #include <vector>
 using namespace std;
 
-#include "MeshKernel.h"
 #include "Geometry.h"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -19,26 +18,26 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////
-class MeshKernelLinkedTriangles: public MeshKernel
+class MeshKernelLinkedTriangles
 {
 public:
     MeshKernelLinkedTriangles();
-    virtual ~MeshKernelLinkedTriangles() override;
-    virtual void clear() override;
+    virtual ~MeshKernelLinkedTriangles();
+    virtual void clear();
 
-    virtual int nb_vertices() const override; // return the vertice id
-    virtual int add_vertex(const Point3& vertex) override;
-    virtual void set_vertex(int iVertex, const Point3& vertex) override;
-    virtual void get_vertex(int iVertex, Point3& vertex) const override;
+    virtual int nb_vertices() const ; // return the vertice id
+    virtual int add_vertex(const Point3& vertex) ;
+    virtual void set_vertex(int iVertex, const Point3& vertex) ;
+    virtual void get_vertex(int iVertex, Point3& vertex) const ;
 
-    virtual int nb_triangles() const override;
-    virtual int add_triangle(int iVertex1, int iVertex2, int iVertex3) override; // return the triangle ID
-    virtual void get_triangle_vertices(int iTriangle, int& iVertex1, int& iVertex2, int& iVertex3) const override;
-    virtual void unlink_triangle(int iTriangle) override;
-    virtual bool is_triangle_unlinked(int iTriangle) override;
+    virtual int nb_triangles() const ;
+    virtual int add_triangle(int iVertex1, int iVertex2, int iVertex3) ; // return the triangle ID
+    virtual void get_triangle_vertices(int iTriangle, int& iVertex1, int& iVertex2, int& iVertex3) const ;
+    virtual void unlink_triangle(int iTriangle) ;
+    virtual bool is_triangle_unlinked(int iTriangle) ;
 
-    virtual void get_near_triangles(int iTriangle, int& iT1, int& iT2, int& iT3) const override;
-    virtual bool get_triangles_near_edge(int iVertex1, int  iVertex2, int& iTriangle1, int& iTriangle2) const override;
+    virtual void get_near_triangles(int iTriangle, int& iT1, int& iT2, int& iT3) const ;
+    virtual bool get_triangles_near_edge(int iVertex1, int  iVertex2, int& iTriangle1, int& iTriangle2) const ;
 
 private:
     vector<TriangleLT> _vTriangles;

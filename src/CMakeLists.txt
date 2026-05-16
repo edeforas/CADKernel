@@ -13,9 +13,6 @@ set(CADTEST_FILES
 	
 	Mesh.cpp Mesh.h
 	MeshFactory.cpp MeshFactory.h
-	MeshKernel.cpp MeshKernel.h
-	MeshKernelTIN.cpp MeshKernelTIN.h
-	MeshKernelHalfEdge.cpp MeshKernelHalfEdge.h
 	MeshKernelLinkedTriangles.cpp MeshKernelLinkedTriangles.h
 	MeshMeasurements.cpp MeshMeasurements.h
 	MeshUtil.cpp MeshUtil.h

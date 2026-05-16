@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include "MeshKernelTIN.h"
-#include "MeshKernelHalfEdge.h"
 #include "MeshKernelLinkedTriangles.h"
 
 #include "Transform.h"
@@ -14,8 +12,6 @@
 ///////////////////////////////////////////////////////////////////////////
 Mesh::Mesh()
 { 
-	//_pKernel=new MeshKernelTIN;
-	//_pKernel =new MeshKernelHalfEdge;
 	_pKernel = new MeshKernelLinkedTriangles;
 	_iColor = -1;
 }
