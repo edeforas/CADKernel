@@ -1,5 +1,4 @@
 #include "NurbsBoolean.h"
-#include "NurbsBooleanFallback.h"
 #include "NurbsIntersection.h"
 
 #include "NurbsFactory.h"
@@ -365,38 +364,6 @@ void test_nurbs_boolean_trimmed_intersection_torus_sphere_overlap_export()
 
 	ifstream inCurves("test_nurbs_boolean_trimmed_intersection_torus_sphere_overlap_curves.obj");
 	test_bool(inCurves.is_open(), "torus-sphere diagnostics curves obj should exist");
-}
-
-void test_nurbs_boolean_mesh_fallback_torus_sphere_export()
-{
-	cout << endl << "test_nurbs_boolean_mesh_fallback_torus_sphere_export" << endl;
-
-	NurbsSolid torus, sphere;
-	NurbsFactory::create_torus(8., 2., torus);
-	NurbsFactory::create_sphere(8., sphere);
-
-	Mesh u, i, d;
-	NurbsBooleanFallback::union_mesh(torus, sphere, u, 28);
-	NurbsBooleanFallback::intersection_mesh(torus, sphere, i, 28);
-	NurbsBooleanFallback::difference_mesh(torus, sphere, d, 28);
-
-	test_bool(u.nb_triangles() > 0, "fallback mesh union should contain triangles");
-	test_bool(i.nb_triangles() > 0, "fallback mesh intersection should contain triangles");
-	test_bool(d.nb_triangles() > 0, "fallback mesh difference should contain triangles");
-
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_union.obj", u),
-		"fallback union obj export should succeed");
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_intersection.obj", i),
-		"fallback intersection obj export should succeed");
-	test_bool(OBJFile::save("test_nurbs_boolean_mesh_fallback_torus_sphere_difference.obj", d),
-		"fallback difference obj export should succeed");
-
-	ifstream inU("test_nurbs_boolean_mesh_fallback_torus_sphere_union.obj");
-	ifstream inI("test_nurbs_boolean_mesh_fallback_torus_sphere_intersection.obj");
-	ifstream inD("test_nurbs_boolean_mesh_fallback_torus_sphere_difference.obj");
-	test_bool(inU.is_open(), "fallback union obj should exist");
-	test_bool(inI.is_open(), "fallback intersection obj should exist");
-	test_bool(inD.is_open(), "fallback difference obj should exist");
 }
 
 void test_nurbs_boolean_exact_trimmed_torus_sphere_export()

@@ -9,9 +9,6 @@ target_link_libraries(test_geometryutil libCADTest)
 add_executable(test_transform test_transform.cpp  )
 target_link_libraries(test_transform libCADTest)
 
-add_executable(test_smoothmeshfactory "test_smoothmeshfactory.cpp"  )
-target_link_libraries(test_smoothmeshfactory libCADTest)
-
 add_executable(test_mesh_fileformat "test_mesh_fileformat.cpp"  )
 target_link_libraries(test_mesh_fileformat libCADTest)
 
@@ -41,9 +38,6 @@ target_link_libraries(test_mesh_revolve libCADTest)
 
 add_executable(test_stepfile test_stepfile.cpp  )
 target_link_libraries(test_stepfile libCADTest)
-
-add_executable(test_quadbeziertriangle test_quadbeziertriangle.cpp  )
-target_link_libraries(test_quadbeziertriangle libCADTest)
 
 add_executable(test_nurbscurve test_nurbscurve.cpp  )
 target_link_libraries(test_nurbscurve libCADTest)

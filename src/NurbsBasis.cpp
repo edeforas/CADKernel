@@ -1,5 +1,4 @@
 #include "NurbsBasis.h"
-#include "NurbsConstants.h"
 
 #include <cmath>
 #include <algorithm>
@@ -31,7 +30,7 @@ void basis_function_derivatives(
         {
             ndu[j][r] = right[r + 1] + left[j - r];
             double temp = 0.;
-            if (std::fabs(ndu[j][r]) > NurbsConstants::EpsilonNumerical)
+            if (std::fabs(ndu[j][r]) > EpsilonNumerical)
                 temp = ndu[r][j - 1] / ndu[j][r];
             ndu[r][j] = saved + right[r + 1] * temp;
             saved = left[j - r] * temp;
@@ -118,7 +117,7 @@ void basis_function_derivatives(
         {
             ndu[j][r] = right[r + 1] + left[j - r];
             double temp = 0.;
-            if (std::fabs(ndu[j][r]) > NurbsConstants::EpsilonNumerical)
+            if (std::fabs(ndu[j][r]) > EpsilonNumerical)
                 temp = ndu[r][j - 1] / ndu[j][r];
             ndu[r][j] = saved + right[r + 1] * temp;
             saved = left[j - r] * temp;
@@ -197,7 +196,7 @@ void basis_functions(
         {
             const double den = right[r + 1] + left[j - r];
             double temp = 0.;
-            if (std::fabs(den) > NurbsConstants::EpsilonNumerical)
+            if (std::fabs(den) > EpsilonNumerical)
                 temp = N[r] / den;
             N[r] = saved + right[r + 1] * temp;
             saved = left[j - r] * temp;
