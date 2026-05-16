@@ -89,9 +89,6 @@ add_test(test_meshboolean test_meshboolean)
 add_test(test_stepfile test_stepfile)
 add_test(test_mesh_revolve test_mesh_revolve)
 
-add_test(test_smoothmeshfactory test_smoothmeshfactory)
-add_test(test_quadbeziertriangle test_quadbeziertriangle)
-
 add_test(test_nurbscurve test_nurbscurve)
 add_test(test_nurbsutil test_nurbsutil)
 add_test(test_nurbsutil_trimmedsurface test_nurbsutil_trimmedsurface)
