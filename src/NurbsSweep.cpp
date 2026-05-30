@@ -3,13 +3,146 @@
 #include "NurbsSurface.h"
 #include "NurbsCurve.h"
 #include "NurbsUtil.h"
+#include "BoundingBox.h"
+#include "NurbsFactory.h"
+#include "NurbsSolid.h"
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
+namespace {
+	// Helper function to create a disk cap from the profile curve at a given position
+	void create_disk_cap_from_profile(const NurbsCurve& profile, const Point3& position, const Point3& normal, NurbsSurface& cap)
+	{
+		cap.clear();
+		
+		// Create a filled surface from the profile curve
+		NurbsFactory::create_filled_surface(profile, cap);
+		
+		// Rotate the disk to align with the normal direction
+		// The filled surface is initially in XY plane with center at origin
+		Point3 normalDir = normal;
+		if (normalDir.norm_square() > 1e-12) {
+			normalDir.normalize();
+		} else {
+			normalDir = Point3(0, 0, 1);
+		}
+		
+		// Create orthonormal basis with normalDir as the Z axis
+		Point3 zAxis(0, 0, 1);
+		Point3 capZ = normalDir;
+		Point3 capX(1, 0, 0);
+		Point3 capY(0, 1, 0);
+		
+		if (fabs(capZ.dot_product(zAxis)) < 0.99) {
+			capX = zAxis.cross_product(capZ);
+			if (capX.norm_square() < 1e-12) {
+				capX = Point3(1, 0, 0);
+			}
+			capX.normalize();
+			capY = capZ.cross_product(capX);
+			capY.normalize();
+		} else {
+			capX = Point3(1, 0, 0);
+			if (fabs(capX.dot_product(capZ)) > 0.99) {
+				capX = Point3(0, 1, 0);
+			}
+			capX = capX - capZ * capX.dot_product(capZ);
+			if (capX.norm_square() > 1e-12) {
+				capX.normalize();
+			} else {
+				capX = Point3(1, 0, 0);
+			}
+			capY = capZ.cross_product(capX);
+			capY.normalize();
+		}
+		
+		// Transform all cap points
+		for (auto& p : cap.points()) {
+			Point3 rotated(
+				p.x() * capX.x() + p.y() * capY.x(),
+				p.x() * capX.y() + p.y() * capY.y(),
+				p.x() * capX.z() + p.y() * capY.z()
+			);
+			p = rotated + position;
+		}
+	}
 
-bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsSurface& surface, bool perpendicular)
+	// Helper function to create a half-sphere cap at a given position and orientation
+	void create_hemisphere_cap(const Point3& position, const Point3& normal, double radius, NurbsSurface& cap)
+	{
+		cap.clear();
+		
+		// Create a semicircle profile curve (half circle pointing in +Z direction)
+		NurbsCurve profileCurve;
+		std::vector<Point3> profilePoints = {
+			Point3(0., 0., 0.),
+			Point3(radius, 0., 0.),
+			Point3(radius, 0., radius)
+		};
+		std::vector<double> profileWeights = { 1., 1. / std::sqrt(2.), 1. };
+		std::vector<double> profileKnots = { 0., 0., 0., 1., 1., 1. };
+		
+		profileCurve.set_degree(2);
+		profileCurve.set_points(profilePoints);
+		profileCurve.set_weights(profileWeights);
+		profileCurve.set_knots(profileKnots);
+		
+		// Use filled surface from the semicircle profile
+		NurbsFactory::create_filled_surface(profileCurve, cap);
+		
+		// Transform the cap to the endpoint position and orientation
+		Point3 normalDir = normal;
+		if (normalDir.norm_square() > 1e-12) {
+			normalDir.normalize();
+		} else {
+			normalDir = Point3(0, 0, 1);
+		}
+		
+		// Create local coordinate frame aligned with the normal
+		Point3 zAxis(0, 0, 1);
+		Point3 localZ = normalDir;
+		Point3 localX(1, 0, 0);
+		Point3 localY(0, 1, 0);
+		
+		if (fabs(normalDir.dot_product(zAxis)) < 0.99) {
+			localX = zAxis.cross_product(normalDir);
+			if (localX.norm_square() < 1e-12) {
+				localX = Point3(1, 0, 0);
+			}
+			localX.normalize();
+			localY = localZ.cross_product(localX);
+			localY.normalize();
+		} else {
+			localX = Point3(1, 0, 0);
+			if (fabs(localX.dot_product(normalDir)) > 0.99) {
+				localX = Point3(0, 1, 0);
+			}
+			localX = localX - normalDir * localX.dot_product(normalDir);
+			if (localX.norm_square() > 1e-12) {
+				localX.normalize();
+			} else {
+				localX = Point3(1, 0, 0);
+			}
+			localY = localZ.cross_product(localX);
+			localY.normalize();
+		}
+		
+		// Transform all cap points: rotate then translate
+		for (auto& p : cap.points()) {
+			Point3 rotated(
+				p.x() * localX.x() + p.y() * localY.x() + p.z() * localZ.x(),
+				p.x() * localX.y() + p.y() * localY.y() + p.z() * localZ.y(),
+				p.x() * localX.z() + p.y() * localY.z() + p.z() * localZ.z()
+			);
+			p = rotated + position;
+		}
+	}
+}
+
+
+bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsSurface& surface, bool perpendicular, EndpointClosure startCap, EndpointClosure endCap)
 {
     surface.clear();
 
@@ -165,4 +298,89 @@ bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsS
     surface.set_closed_v(path.is_closed());
 
     return true;
+}
+
+bool NurbsSweep::sweep_solid(const NurbsCurve& profile, const NurbsCurve& path, NurbsSolid& solid, bool perpendicular, EndpointClosure startCap, EndpointClosure endCap)
+{
+	solid.clear();
+	
+	// Create main sweep surface
+	NurbsSurface mainSurface;
+	if (!sweep(profile, path, mainSurface, perpendicular)) {
+		return false;
+	}
+	
+	// Add the main surface
+	solid.add_surface(mainSurface);
+	
+	// Get path endpoints
+	const std::vector<Point3>& pathPoints = path.points();
+	Point3 pathStart = pathPoints[0];
+	Point3 pathEnd = pathPoints[pathPoints.size() - 1];
+	
+	// Compute tangent vectors at endpoints for cap orientation
+	Point3 startTangent = (pathPoints.size() > 1) ? 
+		(pathPoints[1] - pathPoints[0]) : 
+		Point3(0, 0, 1);
+	startTangent.normalize();
+	
+	Point3 endTangent = (pathPoints.size() > 1) ? 
+		(pathPoints[pathPoints.size() - 1] - pathPoints[pathPoints.size() - 2]) : 
+		Point3(0, 0, 1);
+	endTangent.normalize();
+	
+	// Compute profile radius for hemisphere caps
+	Point3 profileCenter;
+	const std::vector<Point3>& profilePoints = profile.points();
+	const std::vector<double>& profileWeights = profile.weights();
+	
+	profileCenter = Point3(0, 0, 0);
+	double totalWeight = 0.0;
+	
+	for (int i = 0; i < (int)profilePoints.size(); ++i) {
+		double w = (profileWeights.size() == profilePoints.size()) ? profileWeights[i] : 1.0;
+		profileCenter += profilePoints[i] * w;
+		totalWeight += w;
+	}
+	
+	if (totalWeight > 1e-12) {
+		profileCenter /= totalWeight;
+	} else if (profilePoints.size() > 0) {
+		profileCenter = profilePoints[0];
+	}
+	
+	double profileRadius = 0.0;
+	for (const auto& p : profilePoints) {
+		double dist = (p - profileCenter).norm();
+		profileRadius = std::max(profileRadius, dist);
+	}
+	profileRadius = std::max(profileRadius, 1e-12);
+	
+	// Create and add start cap
+	if (startCap != EndpointClosure::None) {
+		NurbsSurface startCapSurface;
+		if (startCap == EndpointClosure::Disk) {
+			// Point backwards from start
+			Point3 startNormal = startTangent * -1.0;
+			create_disk_cap_from_profile(profile, pathStart, startNormal, startCapSurface);
+		} else if (startCap == EndpointClosure::HalfSphere) {
+			// Point backwards from start
+			Point3 startNormal = startTangent * -1.0;
+			create_hemisphere_cap(pathStart, startNormal, profileRadius, startCapSurface);
+		}
+		solid.add_surface(startCapSurface);
+	}
+	
+	// Create and add end cap
+	if (endCap != EndpointClosure::None) {
+		NurbsSurface endCapSurface;
+		if (endCap == EndpointClosure::Disk) {
+			create_disk_cap_from_profile(profile, pathEnd, endTangent, endCapSurface);
+		} else if (endCap == EndpointClosure::HalfSphere) {
+			create_hemisphere_cap(pathEnd, endTangent, profileRadius, endCapSurface);
+		}
+		solid.add_surface(endCapSurface);
+	}
+	
+	return true;
 }

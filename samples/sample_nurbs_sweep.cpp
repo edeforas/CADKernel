@@ -14,10 +14,9 @@ using namespace std;
 
 int main()
 {
-	cout << "NURBS Sweep Sample" << endl;
+	cout << "NURBS Sweep Sample with Endpoint Closures" << endl;
 	cout << "This sample demonstrates sweeping a circular profile along a helical path." << endl;
-	cout << "It creates both a standard sweep and a perpendicular sweep for comparison." << endl;
-	cout << "The helix makes the orientation difference visible in the generated OBJ/STEP output." << endl;
+	cout << "It creates sweeps with different endpoint closure options." << endl;
 	cout << endl;
 
 	// Create a profile curve: a circle
@@ -40,67 +39,27 @@ int main()
 	}
 	NurbsUtil::create_curve_from_points(pathPoints, 3, path); // degree 3 for smooth curve
 	cout << "Created helical path with " << numPoints << " control points" << endl;
+	cout << endl;
 
-	// Sweep the profile along the path to create a surface (standard sweep)
-	cout << "Performing standard sweep (profile orientation fixed)..." << endl;
-	NurbsSurface surface;
-	bool success = NurbsSweep::sweep(profile, path, surface);
-	if (!success) {
-		cout << "Failed to sweep surface!" << endl;
-		return 1;
-	}
+	// Sweep with mixed caps (both orientations)
+	cout << "Creating sweeps with mixed caps..." << endl;
 
-	// Also create a perpendicular sweep
-	cout << "Performing perpendicular sweep (profile stays perpendicular to path)..." << endl;
-	NurbsSurface surfacePerp;
-	bool successPerp = NurbsSweep::sweep(profile, path, surfacePerp, true);
-	if (!successPerp) {
-		cout << "Failed to sweep perpendicular surface!" << endl;
-		return 1;
-	}
-
-	// Force non-closed to avoid STEP issues
-	//surface.set_closed_u(false);
-	//surface.set_closed_v(false);
-	//surfacePerp.set_closed_u(false);
-	//surfacePerp.set_closed_v(false);
-
-	// Save to STEP files
-	cout << "Saving to STEP files..." << endl;
-	StepWriter sw;
-	sw.open("sample_nurbs_sweep.step");
-	sw.write(surface);
-	sw.close();
-
-	sw.open("sample_nurbs_sweep_perp.step");
-	sw.write(surfacePerp);
-	sw.close();
-
-	// Save to OBJ files
-	cout << "Saving to OBJ files..." << endl;
-	Mesh mesh;
-	NurbsUtil::to_mesh(surface, mesh, 5);
+	NurbsSolid solidPerp;
+	NurbsSweep::sweep_solid(profile, path, solidPerp, true,
+		NurbsSweep::EndpointClosure::HalfSphere,
+		NurbsSweep::EndpointClosure::Disk);
+	
 	OBJWriter ow;
-	ow.open("sample_nurbs_sweep.obj");
-	ow.write(mesh);
-	ow.close();
-
 	Mesh meshPerp;
-	NurbsUtil::to_mesh(surfacePerp, meshPerp, 5);
-	ow.open("sample_nurbs_sweep_perp.obj");
+	NurbsUtil::to_mesh(solidPerp, meshPerp, 5);
+	ow.open("sample_nurbs_sweep_mixed_caps.obj");
 	ow.write(meshPerp);
 	ow.close();
-
-	cout << endl;
-	cout << "Sample completed successfully!" << endl;
-	cout << "Files created:" << endl;
-	cout << "  - sample_nurbs_sweep.step      (standard sweep)" << endl;
-	cout << "  - sample_nurbs_sweep.obj       (standard sweep)" << endl;
-	cout << "  - sample_nurbs_sweep_perp.step (perpendicular sweep)" << endl;
-	cout << "  - sample_nurbs_sweep_perp.obj  (perpendicular sweep)" << endl;
-	cout << endl;
-	cout << "The perpendicular sweep keeps the profile circle perpendicular to the path" << endl;
-	cout << "direction at each point, creating a more natural tube-like surface." << endl;
+	
+	StepWriter sw;
+	sw.open("sample_nurbs_sweep_mixed_caps.step");
+	sw.write(solidPerp);
+	sw.close();
 
 	return 0;
 }
