@@ -108,6 +108,20 @@ void test_nurbsfactory_create_solid_cylinder()
 	save_solid(ns, "test_nurbsfactory_create_solid_cylinder");
 }
 ///////////////////////////////////////////////////////////////////////////
+void test_nurbsfactory_create_solid_cone()
+{
+	cout << endl << "test_nurbsfactory_create_solid_cone" << endl;
+
+	NurbsSolid ns;
+	NurbsFactory::create_cone(10, 30, ns);
+
+	Mesh m;
+	NurbsUtil::to_mesh(ns, m, 10);
+	OBJFile::save("test_nurbsfactory_create_solid_cone.obj", m);
+
+	save_solid(ns, "test_nurbsfactory_create_solid_cone");
+}
+///////////////////////////////////////////////////////////////////////////
 void test_nurbsfactory_create_solid_sphere()
 {
 	cout << endl << "test_nurbsfactory_create_solid_sphere" << endl;
@@ -212,6 +226,7 @@ int main()
 	test_nurbsfactory_create_circle();
 	test_nurbsfactory_create_sphere();
 	test_nurbsfactory_create_solid_cylinder();
+	test_nurbsfactory_create_solid_cone();
 	test_nurbsfactory_create_solid_sphere();
 	test_nurbsfactory_create_solid_torus();
 	test_nurbsfactory_create_solid_box();

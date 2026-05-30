@@ -437,12 +437,13 @@ int StepWriter::write_advanced_face(const NurbsSurface& n)
 		bool hasOuter = false;
 		for (const auto& loop : trimmed->trim_loops())
 		{
-			if (loop.points.size() < 3)
+			const std::vector<NurbsUvPoint>& sampledLoop = loop.get_points();
+			if (sampledLoop.size() < 3)
 				continue;
 
 			std::vector<Point3> loop3d;
-			loop3d.reserve(loop.points.size());
-			for (const auto& uv : loop.points)
+			loop3d.reserve(sampledLoop.size());
+			for (const auto& uv : sampledLoop)
 			{
 				Point3 p;
 				n.evaluate(uv.u, uv.v, p);

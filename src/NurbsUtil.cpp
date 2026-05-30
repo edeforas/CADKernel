@@ -158,6 +158,13 @@ void NurbsUtil::create_curve_from_points(const std::vector<Point3>& points, int 
 	n.set_uniform();
 	n.set_equals_weights();
 }
+
+///////////////////////////////////////////////////////////////////////////
+void NurbsUtil::create_surface_from_curve(const NurbsCurve& curve, NurbsSurface& surface)
+{
+	// Create a filled surface from a curve using the NurbsFactory
+	NurbsFactory::create_filled_surface(curve, surface);
+}
 ///////////////////////////////////////////////////////////////////////////
 void NurbsUtil::create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n)
 {

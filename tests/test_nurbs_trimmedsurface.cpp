@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 #include <string>
 using namespace std;
 
@@ -223,12 +224,51 @@ void test_nurbs_trimmedsurface_loop_autofix()
 	sw.close();
 }
 
+void test_nurbs_trimmedsurface_curve_loop_step_export()
+{
+	cout << endl << "test_nurbs_trimmedsurface_curve_loop_step_export" << endl;
+
+	NurbsSurface base;
+	NurbsFactory::create_quad(
+		Point3(0., 0., 0.),
+		Point3(1., 0., 0.),
+		Point3(1., 1., 0.),
+		Point3(0., 1., 0.),
+		base);
+
+	NurbsTrimmedSurface ts(base);
+	NurbsCurve loopCurve;
+	NurbsUtil::create_curve_from_points({
+		Point3(0.2, 0.2, 0.),
+		Point3(0.8, 0.2, 0.),
+		Point3(0.8, 0.8, 0.),
+		Point3(0.2, 0.8, 0.)
+	}, 1, loopCurve);
+	ts.add_outer_loop(loopCurve);
+
+	const string stepPath = "test_nurbs_trimmedsurface_curve_loop.step";
+	StepWriter sw;
+	sw.open(stepPath);
+	test_bool(sw.is_open(), "curve-backed trim loop STEP export should open file");
+	sw.write(ts);
+	sw.close();
+
+	ifstream in(stepPath.c_str());
+	test_bool(in.is_open(), "curve-backed trim loop STEP export should write a file");
+	string content((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+	in.close();
+
+	test_bool(content.find("ADVANCED_FACE('',(#") != string::npos,
+		"curve-backed trim loop should emit a face with bounds in STEP export");
+}
+
 int main()
 {
 	test_nurbs_trimmedsurface_outer_clip();
 	test_nurbs_trimmedsurface_hole_clip();
 	test_nurbs_trimmedsurface_vector_overload();
 	test_nurbs_trimmedsurface_loop_autofix();
+	test_nurbs_trimmedsurface_curve_loop_step_export();
 
 	cout << "Test Finished.";
 	return 0;

@@ -50,6 +50,15 @@ int main()
 	sw.write(cylinder);
 	o.write(m);
 
+
+	cout << "Creating cone" << endl;
+	NurbsSolid cone;
+	NurbsFactory::create_cone(7, 10, cone);
+	cone.apply_transform(Translation(Point3(20., 20., 0.)));
+	NurbsUtil::to_mesh(cone, m, 8);
+	sw.write(cone);
+	o.write(m);
+
 	sw.close();
 	o.close();
 	return 0;

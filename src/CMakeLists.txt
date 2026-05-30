@@ -16,6 +16,7 @@ set(CADTEST_FILES
 	MeshKernelLinkedTriangles.cpp MeshKernelLinkedTriangles.h
 	MeshMeasurements.cpp MeshMeasurements.h
 	MeshUtil.cpp MeshUtil.h
+	MeshSolid.cpp MeshSolid.h
 	
 	BezierUtil.cpp BezierUtil.h
 	BezierSurface.cpp BezierSurface.h

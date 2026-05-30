@@ -7,6 +7,7 @@
 using namespace std;
 
 #include "Mesh.h"
+#include "MeshSolid.h"
 
 class OBJWriter
 {
@@ -19,16 +20,23 @@ public:
 	void close();
 
 	void write(const Mesh& to_mesh);
+	void write(const MeshSolid& solid);
 	void write(const vector<Point3>& polyline);
+	
 private:
 	ofstream _f;
+	int _iGroup;
 	int _verticesCount;
 };
 
+//helper functions to load and save OBJ files
 namespace OBJFile
 {
 	bool save(const string& filename, const Mesh& to_mesh);
-	bool load(const string& filename, Mesh& to_mesh);
+	bool save(const string& filename, const MeshSolid& solid);
+
+	bool load(const string& filename, MeshSolid& solid);
+	bool load(const string& filename, Mesh& mesh);
 }
 
 

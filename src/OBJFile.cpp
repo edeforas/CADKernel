@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <cassert>
 using namespace std;
 
 #include "OBJFile.h"
@@ -21,13 +22,14 @@ namespace OBJFile
 	}
 	///////////////////////////////////////////////////////////////////////////
 	// todo add vertex aliasing on load
-	bool load(const string& filename, Mesh& to_mesh)
+	bool load(const string& filename, MeshSolid& solid)
 	{
 		ifstream f(filename);
 		if (!f)
 			return false;
 
-		to_mesh.clear();
+		solid.clear();
+		Mesh m;
 		while (!f.eof())
 		{
 			string sType, sLine;
@@ -39,12 +41,22 @@ namespace OBJFile
 			stringstream ss(sLine);
 			ss >> sType;
 
+			if (sType=="g")
+			{			
+				if(!m.empty())
+					solid.add_surface(m);
+
+				m.clear();
+				string sGroupName;
+				ss >> sGroupName;
+			}
+
 			// read vertice
 			if (sType == "v")
 			{
 				double x, y, z;
 				ss >> x >> y >> z;
-				to_mesh.add_vertex(Point3(x, y, z));
+				m.add_vertex(Point3(x, y, z));
 			}
 
 			// read facet
@@ -53,13 +65,28 @@ namespace OBJFile
 				int i1, i2, i3;
 				ss >> i1 >> i2 >> i3;
 
-				to_mesh.add_triangle(i1 - 1, i2 - 1, i3 - 1);
+				m.add_triangle(i1 - 1, i2 - 1, i3 - 1);
 			}
 		}
 
+		if(!m.empty())
+			solid.add_surface(m);
 		return true;
 	}
 	///////////////////////////////////////////////////////////////////////////
+
+	bool load(const string& filename, Mesh& mesh)
+	{
+		MeshSolid solid;
+		if (!load(filename, solid))
+			return false;
+
+		solid.to_mesh(mesh);
+		return true;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+
 }
 
 OBJWriter::OBJWriter()
@@ -76,6 +103,7 @@ OBJWriter::~OBJWriter()
 void OBJWriter::open(const string& filename)
 {
 	_f.open(filename);
+	_iGroup = 0;
 }
 
 bool OBJWriter::is_open()
@@ -90,6 +118,8 @@ void OBJWriter::close()
 
 void OBJWriter::write(const Mesh& to_mesh)
 {
+	assert(_f.is_open());
+
 	double colorR = 0., colorG = 0., colorB = 0.;
 	bool bHasColor = to_mesh.get_color() != -1;
 	if (bHasColor)
@@ -129,6 +159,8 @@ void OBJWriter::write(const Mesh& to_mesh)
 
 void OBJWriter::write(const vector<Point3>& polyline)
 {
+	assert(_f.is_open());
+	
 	// write vertices
 	Point3 vertex;
 	for (int i = 0; i < polyline.size(); i++)
@@ -146,3 +178,30 @@ void OBJWriter::write(const vector<Point3>& polyline)
 
 	_verticesCount += polyline.size();
 }
+
+void OBJWriter::write(const MeshSolid& solid)
+{
+	assert(_f.is_open());
+
+	for (int iFace = 0; iFace < solid.nb_surfaces(); iFace++)
+	{
+		// write each face of the solid as a group
+		_f << "g " << "face_" <<iFace+_iGroup << endl;
+		write(solid.surface(iFace));
+	}
+
+	_iGroup += solid.nb_surfaces();
+}
+
+bool OBJFile::save(const string& filename, const MeshSolid& solid)
+{
+	OBJWriter ow;
+	ow.open(filename);
+	if (!ow.is_open())
+		return false;
+
+	ow.write(solid);
+	ow.close();
+	return true;
+}
+

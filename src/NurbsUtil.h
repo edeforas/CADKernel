@@ -21,6 +21,7 @@ namespace NurbsUtil
 	};
 
 	void create_curve_from_points(const std::vector<Point3>& points, int iDegree, NurbsCurve& n);
+	void create_surface_from_curve(const NurbsCurve& curve, NurbsSurface& surface);
 	void create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n);
 	void create_solid_from_mesh(const Mesh & m, NurbsSolid& n);
 	void to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments=5, bool bClearMesh=true);

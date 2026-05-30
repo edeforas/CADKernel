@@ -693,14 +693,14 @@ NurbsSurface NurbsSurface::reversed_u() const
 NurbsCurve NurbsSurface::edge_u0() const
 {
 	NurbsCurve c;
-	c.set_degree(degree_u());
-	c.set_knots(knots_u());
+	c.set_degree(degree_v());
+	c.set_knots(knots_v());
 	std::vector<Point3> vp;
 	std::vector<double> vw;
-	for (int u = 0; u < nb_points_u(); u++)
+	for (int v = 0; v < nb_points_v(); v++)
 	{
-		vp.push_back(points()[u]);
-		vw.push_back(weights()[u]);
+		vp.push_back(points()[v*nb_points_u()]);
+		vw.push_back(weights()[v*nb_points_u()]);
 	}
 	c.set_points(vp);
 	c.set_weights(vw);
@@ -710,14 +710,14 @@ NurbsCurve NurbsSurface::edge_u0() const
 NurbsCurve NurbsSurface::edge_u1() const
 {
 	NurbsCurve c;
-	c.set_degree(degree_u());
-	c.set_knots(knots_u());
+	c.set_degree(degree_v());
+	c.set_knots(knots_v());
 	std::vector<Point3> vp;
 	std::vector<double> vw;
-	for (int u = 0; u < nb_points_u(); u++)
+	for (int v = 0; v < nb_points_v(); v++)
 	{
-		vp.push_back(points()[u + (nb_points_u() - 1) * nb_points_v()]);
-		vw.push_back(weights()[u + (nb_points_u() - 1) * nb_points_v()]);
+		vp.push_back(points()[v*nb_points_u() + nb_points_u() - 1]);
+		vw.push_back(weights()[v*nb_points_u() + nb_points_u() - 1]);
 	}
 	c.set_points(vp);
 	c.set_weights(vw);
@@ -727,14 +727,14 @@ NurbsCurve NurbsSurface::edge_u1() const
 NurbsCurve NurbsSurface::edge_v0() const
 {
 	NurbsCurve c;
-	c.set_degree(degree_v());
-	c.set_knots(knots_v());
+	c.set_degree(degree_u());
+	c.set_knots(knots_u());
 	std::vector<Point3> vp;
 	std::vector<double> vw;
-	for (int v = 0; v < nb_points_v(); v++)
+	for (int u = 0; u < nb_points_u(); u++)
 	{
-		vp.push_back(points()[v * nb_points_u()]);
-		vw.push_back(weights()[v * nb_points_u()]);
+		vp.push_back(points()[u ]);
+		vw.push_back(weights()[u ]);
 	}
 	c.set_points(vp);
 	c.set_weights(vw);
@@ -744,14 +744,14 @@ NurbsCurve NurbsSurface::edge_v0() const
 NurbsCurve NurbsSurface::edge_v1() const
 {
 	NurbsCurve c;
-	c.set_degree(degree_v());
-	c.set_knots(knots_v());
+	c.set_degree(degree_u());
+	c.set_knots(knots_u());
 	std::vector<Point3> vp;
 	std::vector<double> vw;
-	for (int v = 0; v < nb_points_v(); v++)
+	for (int u = 0; u < nb_points_u(); u++)
 	{
-		vp.push_back(points()[v * nb_points_u() + nb_points_u() - 1]);
-		vw.push_back(weights()[v * nb_points_u() + nb_points_u() - 1]);
+		vp.push_back(points()[u + (nb_points_v()-1) * nb_points_u()]);
+		vw.push_back(weights()[u + (nb_points_v()-1) * nb_points_u()]);
 	}
 	c.set_points(vp);
 	c.set_weights(vw);
