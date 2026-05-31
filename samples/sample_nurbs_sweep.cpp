@@ -14,14 +14,13 @@ using namespace std;
 
 int main()
 {
-	cout << "NURBS Sweep Sample with Endpoint Closures" << endl;
-	cout << "This sample demonstrates sweeping a circular profile along a helical path." << endl;
-	cout << "It creates sweeps with different endpoint closure options." << endl;
+	cout << "NURBS Sweep Sample" << endl;
+	cout << "Demonstrates sweeping a circular profile along a helical path." << endl;
 	cout << endl;
 
 	// Create a profile curve: a circle
 	NurbsCurve profile;
-	NurbsFactory::create_circle(1.0, profile); // radius 1
+	NurbsFactory::create_circle(1.0, profile);
 	cout << "Created circular profile with radius 1.0" << endl;
 
 	// Create a path curve: a helical 3D curve
@@ -37,29 +36,31 @@ int main()
 		double z = t * 10.0;
 		pathPoints.push_back(Point3(x, y, z));
 	}
-	NurbsUtil::create_curve_from_points(pathPoints, 3, path); // degree 3 for smooth curve
+	NurbsUtil::create_curve_from_points(pathPoints, 3, path);
 	cout << "Created helical path with " << numPoints << " control points" << endl;
 	cout << endl;
 
-	// Sweep with mixed caps (both orientations)
-	cout << "Creating sweeps with mixed caps..." << endl;
+	// Create a closed sweep solid
+	cout << "Creating sweep solid with disk caps..." << endl;
+	NurbsSolid solid;
+	NurbsSweep::sweep_solid(profile, path, solid);
 
-	NurbsSolid solidPerp;
-	NurbsSweep::sweep_solid(profile, path, solidPerp, true,
-		NurbsSweep::EndpointClosure::HalfSphere,
-		NurbsSweep::EndpointClosure::Disk);
-	
+	// Export to OBJ
+	cout << "Exporting to OBJ..." << endl;
 	OBJWriter ow;
-	Mesh meshPerp;
-	NurbsUtil::to_mesh(solidPerp, meshPerp, 5);
-	ow.open("sample_nurbs_sweep_mixed_caps.obj");
-	ow.write(meshPerp);
+	Mesh mesh;
+	NurbsUtil::to_mesh(solid, mesh, 5);
+	ow.open("sample_nurbs_sweep.obj");
+	ow.write(mesh);
 	ow.close();
-	
+
+	// Export both to STEP
+	cout << "Exporting to STEP..." << endl;
 	StepWriter sw;
-	sw.open("sample_nurbs_sweep_mixed_caps.step");
-	sw.write(solidPerp);
+	sw.open("sample_nurbs_sweep.step");
+	sw.write(solid);
 	sw.close();
 
+	cout << "Done!" << endl;
 	return 0;
 }
