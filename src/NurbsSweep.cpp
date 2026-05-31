@@ -11,11 +11,7 @@
 #include <cmath>
 #include <vector>
 
-namespace {
-	// Currently empty - helper functions removed
-}
-
-
+//sweep profile (u dimension) along path (v dimension) to create a surface
 bool NurbsSweep::sweep(const NurbsCurve& profile, const NurbsCurve& path, NurbsSurface& surface, bool perpendicular)
 {
     surface.clear();
@@ -180,29 +176,23 @@ bool NurbsSweep::sweep_solid(const NurbsCurve& profile, const NurbsCurve& path, 
 	
 	// Create and add main sweep surface
 	NurbsSurface mainSurface;
-	if (!sweep(profile, path, mainSurface, perpendicular)) {
+	if (!sweep(profile, path, mainSurface, perpendicular))
 		return false;
-	}
+	
 	solid.add_surface(mainSurface);
 	
-	// Extract boundary curves at v=0 (start of path) and v=1 (end of path) from the sweep surface
-	// These curves represent the profile at each end of the sweep path, already in global frame
+    // Create and add start cap from the boundary curve
 	NurbsCurve startProfileCurve = mainSurface.edge_v0();
-	NurbsCurve endProfileCurve = mainSurface.edge_v1();
+    NurbsSurface capSurfaceStart;
+    NurbsUtil::create_surface_from_curve(startProfileCurve, capSurfaceStart);
+    solid.add_surface(capSurfaceStart);
 	
-	// Create and add start cap from the boundary curve
-	{
-		NurbsSurface capSurface;
-		NurbsUtil::create_surface_from_curve(startProfileCurve, capSurface);
-		solid.add_surface(capSurface);
-	}
-	
+
 	// Create and add end cap from the boundary curve
-	{
-		NurbsSurface capSurface;
-		NurbsUtil::create_surface_from_curve(endProfileCurve, capSurface);
-		solid.add_surface(capSurface);
-	}
-	
+	NurbsCurve endProfileCurve = mainSurface.edge_v1();
+    NurbsSurface capSurfaceEnd;
+    NurbsUtil::create_surface_from_curve(endProfileCurve, capSurfaceEnd);
+    solid.add_surface(capSurfaceEnd);
+
 	return true;
 }
