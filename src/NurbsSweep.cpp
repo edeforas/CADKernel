@@ -12,67 +12,7 @@
 #include <vector>
 
 namespace {
-	// Helper function to compute an orthonormal frame aligned with a given normal direction
-	void compute_local_frame(const Point3& normal, Point3& localX, Point3& localY, Point3& localZ)
-	{
-		localZ = normal;
-		if (localZ.norm_square() > 1e-12) {
-			localZ.normalize();
-		} else {
-			localZ = Point3(0, 0, 1);
-		}
-		
-		// Create orthonormal basis with localZ as the normal
-		Point3 zAxis(0, 0, 1);
-		localX = Point3(1, 0, 0);
-		localY = Point3(0, 1, 0);
-		
-		if (fabs(localZ.dot_product(zAxis)) < 0.99) {
-			localX = zAxis.cross_product(localZ);
-			if (localX.norm_square() < 1e-12) {
-				localX = Point3(1, 0, 0);
-			}
-			localX.normalize();
-			localY = localZ.cross_product(localX);
-			localY.normalize();
-		} else {
-			localX = Point3(1, 0, 0);
-			if (fabs(localX.dot_product(localZ)) > 0.99) {
-				localX = Point3(0, 1, 0);
-			}
-			localX = localX - localZ * localX.dot_product(localZ);
-			if (localX.norm_square() > 1e-12) {
-				localX.normalize();
-			} else {
-				localX = Point3(1, 0, 0);
-			}
-			localY = localZ.cross_product(localX);
-			localY.normalize();
-		}
-	}
-
-	// Helper function to create a disk cap from the profile curve at a given position
-	void create_disk_cap_from_profile(const NurbsCurve& profile, const Point3& position, const Point3& normal, NurbsSurface& cap)
-	{
-		cap.clear();
-		
-		// Create a filled surface from the profile curve
-		NurbsUtil::create_surface_from_curve(profile, cap);
-		
-		// Compute local frame aligned with the normal direction
-		Point3 localX, localY, localZ;
-		compute_local_frame(normal, localX, localY, localZ);
-		
-		// Transform all cap points: rotate then translate
-		for (auto& p : cap.points()) {
-			Point3 rotated(
-				p.x() * localX.x() + p.y() * localY.x(),
-				p.x() * localX.y() + p.y() * localY.y(),
-				p.x() * localX.z() + p.y() * localY.z()
-			);
-			p = rotated + position;
-		}
-	}
+	// Currently empty - helper functions removed
 }
 
 
@@ -245,56 +185,22 @@ bool NurbsSweep::sweep_solid(const NurbsCurve& profile, const NurbsCurve& path, 
 	}
 	solid.add_surface(mainSurface);
 	
-	// Get path endpoints and compute tangent vectors
-	const std::vector<Point3>& pathPoints = path.points();
-	Point3 pathStart = pathPoints[0];
-	Point3 pathEnd = pathPoints[pathPoints.size() - 1];
+	// Extract boundary curves at u=0 and u=1 from the sweep surface
+	// These curves are already in the global frame and represent the profile boundaries
+	NurbsCurve startProfileCurve = mainSurface.edge_u0();
+	NurbsCurve endProfileCurve = mainSurface.edge_u1();
 	
-	Point3 startTangent = (pathPoints.size() > 1) ? 
-		(pathPoints[1] - pathPoints[0]) : 
-		Point3(0, 0, 1);
-	startTangent.normalize();
-	
-	Point3 endTangent = (pathPoints.size() > 1) ? 
-		(pathPoints[pathPoints.size() - 1] - pathPoints[pathPoints.size() - 2]) : 
-		Point3(0, 0, 1);
-	endTangent.normalize();
-	
-	// Compute profile radius for caps
-	const std::vector<Point3>& profilePoints = profile.points();
-	const std::vector<double>& profileWeights = profile.weights();
-	
-	Point3 profileCenter(0, 0, 0);
-	double totalWeight = 0.0;
-	for (int i = 0; i < (int)profilePoints.size(); ++i) {
-		double w = (profileWeights.size() == profilePoints.size()) ? profileWeights[i] : 1.0;
-		profileCenter += profilePoints[i] * w;
-		totalWeight += w;
-	}
-	if (totalWeight > 1e-12) {
-		profileCenter /= totalWeight;
-	} else if (profilePoints.size() > 0) {
-		profileCenter = profilePoints[0];
-	}
-	
-	double profileRadius = 0.0;
-	for (const auto& p : profilePoints) {
-		profileRadius = std::max(profileRadius, (p - profileCenter).norm());
-	}
-	profileRadius = std::max(profileRadius, 1e-12);
-	
-	// Create and add start cap (disk)
+	// Create and add start cap from the boundary curve
 	{
 		NurbsSurface capSurface;
-		Point3 startNormal = startTangent * -1.0;  // Point backwards from start
-		create_disk_cap_from_profile(profile, pathStart, startNormal, capSurface);
+		NurbsUtil::create_surface_from_curve(startProfileCurve, capSurface);
 		solid.add_surface(capSurface);
 	}
 	
-	// Create and add end cap (disk)
+	// Create and add end cap from the boundary curve
 	{
 		NurbsSurface capSurface;
-		create_disk_cap_from_profile(profile, pathEnd, endTangent, capSurface);
+		NurbsUtil::create_surface_from_curve(endProfileCurve, capSurface);
 		solid.add_surface(capSurface);
 	}
 	
