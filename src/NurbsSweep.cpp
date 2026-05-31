@@ -185,10 +185,10 @@ bool NurbsSweep::sweep_solid(const NurbsCurve& profile, const NurbsCurve& path, 
 	}
 	solid.add_surface(mainSurface);
 	
-	// Extract boundary curves at u=0 and u=1 from the sweep surface
-	// These curves are already in the global frame and represent the profile boundaries
-	NurbsCurve startProfileCurve = mainSurface.edge_u0();
-	NurbsCurve endProfileCurve = mainSurface.edge_u1();
+	// Extract boundary curves at v=0 (start of path) and v=1 (end of path) from the sweep surface
+	// These curves represent the profile at each end of the sweep path, already in global frame
+	NurbsCurve startProfileCurve = mainSurface.edge_v0();
+	NurbsCurve endProfileCurve = mainSurface.edge_v1();
 	
 	// Create and add start cap from the boundary curve
 	{
