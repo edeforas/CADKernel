@@ -155,6 +155,38 @@ void NurbsFactory::create_torus(double dMajorRadius, double dMinorRadius, NurbsS
 	nr.revolve(nc, ns);
 }
 ///////////////////////////////////////////////////////////////////////////
+void NurbsFactory::create_cone(double dRadius, double dHeight, NurbsSolid& n)
+{
+	n.clear();
+
+	NurbsSurface s1, s2;
+
+	create_disk(dRadius, s1);
+	for (auto& p : s1.points())
+	{
+		p.z() -= dHeight / 2.;
+		p.y() = -p.y();
+	}
+
+	NurbsCurve nc;
+	std::vector<Point3> points = {
+		Point3(dRadius,0.,-dHeight / 2.),
+		Point3(0.,0.,dHeight / 2.)
+	};
+
+	NurbsUtil::create_curve_from_points(points, 1, nc);
+	NurbsRevolve nr;
+	nr.revolve(nc, s2);
+
+	for (auto& p : s2.points())
+	{
+		p.y() = -p.y();
+	}
+
+	n.add_surface(s1);
+	n.add_surface(s2);
+}
+///////////////////////////////////////////////////////////////////////////
 void NurbsFactory::create_cylinder(double dRadius, double dHeight, NurbsSolid& n)
 {
 	n.clear();

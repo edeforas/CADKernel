@@ -26,6 +26,7 @@ namespace NurbsFactory
 	//solid
 	void create_box(double dSizeX, double dSizeY, double dSizeZ, NurbsSolid& n);
 	void create_cylinder(double dRadius,double dHeight, NurbsSolid& n);
+	void create_cone(double dRadius,double dHeight, NurbsSolid& n);
 	void create_sphere(double dRadius, NurbsSolid& n);
 	void create_torus(double dMajorRadius, double dMinorRadius, NurbsSolid& n);
 }
