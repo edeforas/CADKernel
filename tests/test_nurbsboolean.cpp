@@ -490,6 +490,66 @@ void test_nurbs_boolean_random_cylinders_and_step_save()
 	}
 }
 
+void test_nurbs_boolean_partial_overlap_trimmed_return()
+{
+	cout << endl << "test_nurbs_boolean_partial_overlap_trimmed_return" << endl;
+
+	NurbsSolid a, b;
+	NurbsFactory::create_sphere(5., a);
+	NurbsFactory::create_cylinder(3., 15., b);
+	Translation t(Point3(0., 0., 5.));
+	b.apply_transform(t);
+
+	NurbsBoolean nb;
+
+	// Test compute_union with trimmed surface return
+	std::vector<NurbsTrimmedSurface> unionTrimmed;
+	bool okUnion = nb.compute_union(a, b, unionTrimmed);
+	test_bool(okUnion, "compute_union with trimmed output should handle partial overlap");
+	test_bool(!unionTrimmed.empty(), "compute_union trimmed result should contain surfaces");
+
+	// Test compute_intersection with trimmed surface return
+	std::vector<NurbsTrimmedSurface> interTrimmed;
+	bool okInter = nb.compute_intersection(a, b, interTrimmed);
+	test_bool(okInter, "compute_intersection with trimmed output should handle partial overlap");
+	test_bool(!interTrimmed.empty(), "compute_intersection trimmed result should contain surfaces");
+
+	// Test compute_difference with trimmed surface return
+	std::vector<NurbsTrimmedSurface> diffTrimmed;
+	bool okDiff = nb.compute_difference(a, b, diffTrimmed);
+	test_bool(okDiff, "compute_difference with trimmed output should handle partial overlap");
+	test_bool(!diffTrimmed.empty(), "compute_difference trimmed result should contain surfaces");
+
+	// Verify mesh generation works from trimmed results
+	Mesh mUnion, mInter, mDiff;
+	NurbsUtil::to_mesh(unionTrimmed, mUnion, 20);
+	NurbsUtil::to_mesh(interTrimmed, mInter, 20);
+	NurbsUtil::to_mesh(diffTrimmed, mDiff, 20);
+
+	test_bool(mUnion.nb_triangles() > 0, "union trimmed result should mesh successfully");
+	test_bool(mInter.nb_triangles() > 0, "intersection trimmed result should mesh successfully");
+	test_bool(mDiff.nb_triangles() > 0, "difference trimmed result should mesh successfully");
+
+	// Verify STEP export works
+	StepWriter swUnion;
+	swUnion.open("test_nurbs_boolean_partial_overlap_union.step");
+	for (const auto& ts : unionTrimmed)
+		swUnion.write(ts);
+	swUnion.close();
+
+	StepWriter swInter;
+	swInter.open("test_nurbs_boolean_partial_overlap_intersection.step");
+	for (const auto& ts : interTrimmed)
+		swInter.write(ts);
+	swInter.close();
+
+	StepWriter swDiff;
+	swDiff.open("test_nurbs_boolean_partial_overlap_difference.step");
+	for (const auto& ts : diffTrimmed)
+		swDiff.write(ts);
+	swDiff.close();
+}
+
 int main()
 {
 	test_nurbs_boolean_two_spheres_export();
@@ -505,6 +565,7 @@ int main()
 	//test_nurbs_boolean_exact_trimmed_torus_sphere_export();
 	test_nurbs_boolean_exact_trimmed_torus_torus_nested_loop_regression();
 	test_nurbs_boolean_random_cylinders_and_step_save();
+	test_nurbs_boolean_partial_overlap_trimmed_return();
 
 	cout << "Test Finished.";
 	return 0;
