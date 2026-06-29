@@ -78,6 +78,9 @@ target_link_libraries(test_nurbsboolean libCADTest)
 add_executable(test_nurbs_to_bezier test_nurbs_to_bezier.cpp  )
 target_link_libraries(test_nurbs_to_bezier libCADTest)
 
+add_executable(test_nurbsintersection test_nurbsintersection.cpp)
+target_link_libraries(test_nurbsintersection libCADTest)
+
 add_test(test_geometry test_geometry)
 add_test(test_geometryutil test_geometryutil)
 add_test(test_transform test_transform)
@@ -102,5 +105,7 @@ add_test(test_nurbssweep test_nurbssweep)
 add_test(test_nurbsfitting test_nurbsfitting)
 add_test(test_nurbsboolean test_nurbsboolean)
 add_test(test_nurbs_to_bezier test_nurbs_to_bezier)
+
+add_test(test_nurbsintersection test_nurbsintersection)
 
 add_test(test_renderer test_renderer)
