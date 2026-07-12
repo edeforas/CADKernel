@@ -31,7 +31,7 @@ public:
     double distance_square(const Point3& p) const;
     double dot_product(const Point3& p) const;
     Point3 cross_product(const Point3& p) const;
-	double Point3::angle_with(const Point3& p) const;
+	double angle_with(const Point3& p) const;
 	double norm() const;
 	double norm_square() const;
 	void normalize();
