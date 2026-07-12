@@ -18,6 +18,7 @@ public:
 	Point3 operator*(double d) const;
 	Point3 operator/(double d) const;
     Point3 operator-(const Point3& p) const;
+	bool operator==(const Point3& p) const;
 
 	double& x();
 	double& y();
@@ -30,6 +31,7 @@ public:
     double distance_square(const Point3& p) const;
     double dot_product(const Point3& p) const;
     Point3 cross_product(const Point3& p) const;
+	double Point3::angle_with(const Point3& p) const;
 	double norm() const;
 	double norm_square() const;
 	void normalize();
@@ -100,6 +102,8 @@ public:
 	double surface() const;
 	Point3 normal() const; // normal vector (normalized)
 	Point3 orthogonal() const; // compute orthogonal vector (normal to triangle but not normalized())
+
+	bool common_edge_with(const Triangle3& t) const;
 
 private:
 	Point3 _p1, _p2, _p3;

@@ -30,10 +30,15 @@ public:
     void get_triangle(int iTriangle, Triangle3& f) const;
     void get_triangle_vertices(int iTriangle, int& iVertex1, int& iVertex2, int& iVertex3) const;
     void get_triangle_vertices(int iTriangle, Point3& p1, Point3& p2, Point3& p3) const;
+    void get_normal(int iTriangle, Point3& normal) const;
+
     int nb_triangles() const;
     void unlink_triangle(int iTriangle);
     bool is_triangle_unlinked(int iTriangle) const;
     void get_near_triangles(int iTriangle, int& iT1, int& iT2, int& iT3) const;
+    bool common_edge_with(int iTriangle1, int iTriangle2) const;
+    bool common_edge_with(int iTriangle1, Point3& p1, Point3& p2, Point3& p3) const;
+
 
     void split_triangle_with_vertex(int iTriangle, const Point3& p);
     void split_triangle_with_vertex(int iTriangle, int iVertex); //create 3 triangles with edges and new vertex, remove iTriangle

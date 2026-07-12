@@ -17,7 +17,8 @@ set(CADTEST_FILES
 	MeshMeasurements.cpp MeshMeasurements.h
 	MeshUtil.cpp MeshUtil.h
 	MeshSolid.cpp MeshSolid.h
-	
+	MeshSolidUtil.cpp MeshSolidUtil.h
+
 	BezierUtil.cpp BezierUtil.h
 	BezierSurface.cpp BezierSurface.h
 	

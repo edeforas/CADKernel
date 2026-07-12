@@ -201,6 +201,12 @@ Point3 Point3::operator-(const Point3& p) const
 	return res;
 }
 
+bool Point3::operator==(const Point3& p) const
+{
+	double dTol = 1.e-12;
+	return (std::abs(_x - p._x) <= dTol) && (std::abs(_y - p._y) <= dTol) && (std::abs(_z - p._z) <= dTol);
+}
+
 double Point3::distance_square(const Point3& p) const
 {
 	return squared(_x - p._x) + squared(_y - p._y) + squared(_z - p._z);
@@ -215,6 +221,21 @@ Point3 Point3::cross_product(const Point3& p) const
 {
 	// from https://en.wikipedia.org/wiki/Cross_product
 	return Point3(_y * p._z - _z * p._y, _z * p._x - _x * p._z, _x * p._y - _y * p._x);
+}
+
+double Point3::angle_with(const Point3& p) const
+{
+	double d = norm() * p.norm();
+	if (d < 1.e-12)
+		return 0.;
+
+	double c = dot_product(p) / d;
+	if (c < -1.)
+		c = -1.;
+	else if (c > 1.)
+		c = 1.;
+
+	return std::acos(c)*(180./3.14159265358979323846264338);
 }
 
 double Point3::norm() const
@@ -599,6 +620,19 @@ Point3 Triangle3::orthogonal() const
 {
 	return (_p1 - _p2).cross_product(_p1 - _p3);
 }
+
+bool Triangle3::common_edge_with(const Triangle3& t) const
+{
+// Check if the two triangles share an edge by comparing their vertices
+	int sharedVertices = 0;
+
+	if ((_p1 == t.p1()) || (_p1 == t.p2()) || (_p1 == t.p3())) sharedVertices++;
+	if ((_p2 == t.p1()) || (_p2 == t.p2()) || (_p2 == t.p3())) sharedVertices++;
+	if ((_p3 == t.p1()) || (_p3 == t.p2()) || (_p3 == t.p3())) sharedVertices++;
+
+	return sharedVertices >= 2; // Two or more shared vertices indicate a common edge
+}
+
 
 ///////////////////////////////////////////////////////////////////////////
 Plane3::Plane3()

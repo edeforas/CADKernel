@@ -55,6 +55,42 @@ void Mesh::get_near_triangles(int iTriangle, int& iT1, int& iT2, int& iT3) const
 
 	return _pKernel->get_near_triangles(iTriangle,iT1,iT2,iT3);
 }
+
+bool Mesh::common_edge_with(int iTriangle1, int iTriangle2) const
+{
+	assert(iTriangle1 >= 0);
+	assert(iTriangle2 >= 0);
+	assert(iTriangle1 < _pKernel->nb_triangles());
+	assert(iTriangle2 < _pKernel->nb_triangles());
+
+	return _pKernel->common_edge_with(iTriangle1, iTriangle2);
+}
+
+bool Mesh::common_edge_with(int iTriangle1, Point3& p1, Point3& p2, Point3& p3) const
+{
+	assert(iTriangle1 >= 0);
+	assert(iTriangle1 < _pKernel->nb_triangles());
+
+	double dTolerance = 1.e-6;
+	Point3 pA1, pA2, pA3;
+	_pKernel->get_triangle_vertices(iTriangle1, pA1, pA2, pA3);
+
+	int iNbVerticsCommon = 0;
+	if (p1.distance_square(pA1) < dTolerance || p1.distance_square(pA2) < dTolerance || p1.distance_square(pA3) < dTolerance)
+		iNbVerticsCommon++;	
+
+
+	if (p2.distance_square(pA1) < dTolerance || p2.distance_square(pA2) < dTolerance || p2.distance_square(pA3) < dTolerance)
+		iNbVerticsCommon++;	
+
+
+	if (p3.distance_square(pA1) < dTolerance || p3.distance_square(pA2) < dTolerance || p3.distance_square(pA3) < dTolerance)
+		iNbVerticsCommon++;	
+
+
+	return iNbVerticsCommon >= 2;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 void Mesh::get_triangle(int iTriangle, Triangle3& f) const
 {
@@ -93,6 +129,18 @@ void Mesh::get_triangle_vertices(int iTriangle, Point3& p1, Point3& p2, Point3& 
 	_pKernel->get_vertex(iP1, p1);
 	_pKernel->get_vertex(iP2, p2);
 	_pKernel->get_vertex(iP3, p3);
+}
+
+void Mesh::get_normal(int iTriangle, Point3& normal) const
+{
+	assert(iTriangle >= 0);
+	assert(iTriangle < _pKernel->nb_triangles());
+
+	Point3 p1, p2, p3;
+	get_triangle_vertices(iTriangle, p1, p2, p3);
+
+	Triangle3 t(p1, p2, p3);
+	normal = t.normal();
 }
 
 void Mesh::unlink_triangle(int iTriangle)

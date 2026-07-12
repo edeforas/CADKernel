@@ -3,6 +3,7 @@
 
 #include "Mesh.h"
 #include <vector>
+#include "MeshSolid.h"
 
 namespace MeshFactory
 {
@@ -17,5 +18,10 @@ namespace MeshFactory
     void create_torus(double dMajorRadius, double dMinorRadius, int iNbSegments, Mesh& m);
     void create_revolve(const std::vector<Point3>& profile, int iNbSegments, Mesh& m);
     void create_revolve(const std::vector<Point3>& profile, int iNbSegments, bool bCapEnds, Mesh& m);
+
+    void create_torus(double dMajorRadius, double dMinorRadius, int iNbSegments, MeshSolid& ms);
+
+
+
 }
 #endif

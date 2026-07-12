@@ -347,6 +347,14 @@ namespace MeshFactory
 		}
 	}
 
+	void create_torus(double dMajorRadius, double dMinorRadius, int iNbSegments, MeshSolid& ms)
+	{
+		Mesh m;
+		create_torus(dMajorRadius, dMinorRadius, iNbSegments, m);
+		ms.clear();
+		ms.add_surface(m);
+	}
+
 	void create_revolve(const std::vector<Point3>& profile, int iNbSegments, Mesh& m)
 	{
 		create_revolve(profile, iNbSegments, false, m);

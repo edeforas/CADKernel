@@ -2,12 +2,10 @@
 
 ///////////////////////////////////////////////////////////////////////////
 MeshTessellate::MeshTessellate()
-{
-}
+{ }
 
 MeshTessellate::~MeshTessellate()
-{
-}
+{ }
 
 void MeshTessellate::compute(const Mesh& meshIn, int iNbSegments, Mesh& meshOut)
 {
