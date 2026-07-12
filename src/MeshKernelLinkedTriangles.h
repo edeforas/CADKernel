@@ -33,11 +33,14 @@ public:
     virtual int nb_triangles() const ;
     virtual int add_triangle(int iVertex1, int iVertex2, int iVertex3) ; // return the triangle ID
     virtual void get_triangle_vertices(int iTriangle, int& iVertex1, int& iVertex2, int& iVertex3) const ;
+    virtual void get_triangle_vertices(int iTriangle, Point3& p1, Point3& p2, Point3& p3) const ;
     virtual void unlink_triangle(int iTriangle) ;
     virtual bool is_triangle_unlinked(int iTriangle) ;
 
     virtual void get_near_triangles(int iTriangle, int& iT1, int& iT2, int& iT3) const ;
     virtual bool get_triangles_near_edge(int iVertex1, int  iVertex2, int& iTriangle1, int& iTriangle2) const ;
+
+    virtual bool common_edge_with(int iTriangle1, int iTriangle2) const ;
 
 private:
     vector<TriangleLT> _vTriangles;

@@ -9,6 +9,9 @@ target_link_libraries(sample_nurbs_spheres_difference libCADTest)
 add_executable(sample_bump_cube sample_bump_cube.cpp  )
 target_link_libraries(sample_bump_cube libCADTest)
 
+add_executable(sample_cube sample_cube.cpp  )
+target_link_libraries(sample_cube libCADTest)
+
 add_executable(sample_nurbs_mandelbrot sample_nurbs_mandelbrot.cpp )
 target_link_libraries(sample_nurbs_mandelbrot libCADTest)
 
@@ -53,3 +56,6 @@ target_link_libraries(sample_nurbs_curve_continuity libCADTest)
 
 add_executable(sample_trimmed_nurbs_surface sample_trimmed_nurbs_surface.cpp)
 target_link_libraries(sample_trimmed_nurbs_surface libCADTest)
+
+add_executable(sample_convert_cylinder_to_nurbs sample_convert_cylinder_to_nurbs.cpp)
+target_link_libraries(sample_convert_cylinder_to_nurbs libCADTest)

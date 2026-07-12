@@ -89,6 +89,42 @@ void MeshKernelLinkedTriangles::get_triangle_vertices(int iTriangle, int& iVerte
 	iVertex3 = _vTriangles[iTriangle]._vertex3;
 }
 
+void MeshKernelLinkedTriangles::get_triangle_vertices(int iTriangle, Point3& p1, Point3& p2, Point3& p3) const
+{
+	assert(iTriangle >= 0);
+	assert(iTriangle < (int)_vTriangles.size());
+
+	int iVertex1 = _vTriangles[iTriangle]._vertex1;
+	int iVertex2 = _vTriangles[iTriangle]._vertex2;
+	int iVertex3 = _vTriangles[iTriangle]._vertex3;
+
+	p1 = _vVertices[iVertex1];
+	p2 = _vVertices[iVertex2];
+	p3 = _vVertices[iVertex3];
+}
+
+
+bool MeshKernelLinkedTriangles::common_edge_with(int iTriangle1, int iTriangle2) const
+{
+	assert(iTriangle1 >= 0);
+	assert(iTriangle2 >= 0);
+	assert(iTriangle1 < (int)_vTriangles.size());
+	assert(iTriangle2 < (int)_vTriangles.size());
+
+	const TriangleLT& t1 = _vTriangles[iTriangle1];
+	const TriangleLT& t2 = _vTriangles[iTriangle2];
+
+	int iCommonVertices = 0;
+	if (t1._vertex1 == t2._vertex1 || t1._vertex1 == t2._vertex2 || t1._vertex1 == t2._vertex3)
+		iCommonVertices++;
+	if (t1._vertex2 == t2._vertex1 || t1._vertex2 == t2._vertex2 || t1._vertex2 == t2._vertex3)
+		iCommonVertices++;
+	if (t1._vertex3 == t2._vertex1 || t1._vertex3 == t2._vertex2 || t1._vertex3 == t2._vertex3)
+		iCommonVertices++;
+
+	return iCommonVertices >= 2;
+}
+
 void MeshKernelLinkedTriangles::unlink_triangle(int iTriangle)
 {
 	assert(iTriangle >= 0);
