@@ -37,7 +37,7 @@ namespace NurbsUtil
 
 	KnotAnalysis analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
 
-
+	bool convert_mesh_to_nurbs(const Mesh& m, NurbsSolid& s, double dDistanceTol = 1.e-6);
 
 }
 ///////////////////////////////////////////////////////////////////////////

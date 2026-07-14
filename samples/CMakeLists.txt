@@ -53,3 +53,6 @@ target_link_libraries(sample_nurbs_curve_continuity libCADTest)
 
 add_executable(sample_trimmed_nurbs_surface sample_trimmed_nurbs_surface.cpp)
 target_link_libraries(sample_trimmed_nurbs_surface libCADTest)
+
+add_executable(sample_convert_benchy_to_nurbs sample_convert_benchy_to_nurbs.cpp)
+target_link_libraries(sample_convert_benchy_to_nurbs libCADTest)

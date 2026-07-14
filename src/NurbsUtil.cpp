@@ -447,3 +447,25 @@ void NurbsUtil::solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<Nur
 		dst.push_back(ts);
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////
+bool NurbsUtil::convert_mesh_to_nurbs(const Mesh& m, NurbsSolid& s, double dDistanceTol)
+{ 
+	// for now, we will create a NURBS surface for each triangle in the mesh, bad and slow
+	s.clear();
+	for (int i = 0; i < m.nb_triangles(); i++)
+	{
+		Triangle3 t;
+		m.get_triangle(i, t);
+
+		NurbsSurface nsurf;
+		NurbsFactory::create_triangle(t.p1(), t.p2(), t.p3(), nsurf);
+
+		s.add_surface(nsurf);
+	}
+
+	return true;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
