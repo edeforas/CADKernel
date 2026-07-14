@@ -8,6 +8,7 @@
 #include "NurbsFactory.h"
 #include "BezierSurface.h"
 #include "Mesh.h"
+#include "MeshSolid.h"
 
 #include <cmath>
 #include <algorithm>
@@ -449,23 +450,27 @@ void NurbsUtil::solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<Nur
 }
 
 /////////////////////////////////////////////////////////////////////////////
-bool NurbsUtil::convert_mesh_to_nurbs(const Mesh& m, NurbsSolid& s, double dDistanceTol)
+bool NurbsUtil::convert_mesh_to_nurbs(const MeshSolid& m, NurbsSolid& s, double dDistanceTol)
 { 
 	// for now, we will create a NURBS surface for each triangle in the mesh, bad and slow
 	s.clear();
-	for (int i = 0; i < m.nb_triangles(); i++)
+
+	for (int i = 0; i < m.nb_surfaces(); i++)
 	{
-		Triangle3 t;
-		m.get_triangle(i, t);
+		const Mesh& surf = m.surface(i);
+		for (int j = 0; j < surf.nb_triangles(); j++)
+		{
+			Triangle3 t;
+			surf.get_triangle(j, t);
 
-		NurbsSurface nsurf;
-		NurbsFactory::create_triangle(t.p1(), t.p2(), t.p3(), nsurf);
+			NurbsSurface nsurf;
+			NurbsFactory::create_triangle(t.p1(), t.p2(), t.p3(), nsurf);
 
-		s.add_surface(nsurf);
+			s.add_surface(nsurf);
+		}
 	}
 
 	return true;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////

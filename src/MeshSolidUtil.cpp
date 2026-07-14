@@ -29,7 +29,7 @@ void MeshSolidUtil::generate_faces(const Mesh& m,  MeshSolid& ms, double dTolera
 
                 double dAngle = normal.angle_with(normal2);
                 if ((dAngle < dToleranceAngleDeg))
-                    if(surface.common_edge_with(iTriangle, p1, p2, p3))
+                    if(surface.common_edge_with(jTriangle, p1, p2, p3))
                     {    
                         surface.add_triangle(p1, p2, p3);
                         bFoundSurface = true;

@@ -1,5 +1,5 @@
-#ifndef MeshUtil_
-#define MeshUtil_
+#ifndef MeshSolidUtil_
+#define MeshSolidUtil_
 
 #include <vector>
 using namespace std;

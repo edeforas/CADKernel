@@ -10,6 +10,7 @@ class NurbsSolid;
 class NurbsTrimmedSurface;
 class BezierSurface;
 class Mesh;
+class MeshSolid;
 
 ///////////////////////////////////////////////////////////////////////////
 namespace NurbsUtil
@@ -37,7 +38,7 @@ namespace NurbsUtil
 
 	KnotAnalysis analyze_knots(const std::vector<double>& knots, int expectedDegree, int expectedCtrlPoints);
 
-	bool convert_mesh_to_nurbs(const Mesh& m, NurbsSolid& s, double dDistanceTol = 1.e-6);
+	bool convert_mesh_to_nurbs(const MeshSolid& m, NurbsSolid& s, double dDistanceTol = 1.e-6);
 
 }
 ///////////////////////////////////////////////////////////////////////////
