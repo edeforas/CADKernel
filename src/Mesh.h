@@ -39,7 +39,6 @@ public:
     bool common_edge_with(int iTriangle1, int iTriangle2) const;
     bool common_edge_with(int iTriangle1, Point3& p1, Point3& p2, Point3& p3) const;
 
-
     void split_triangle_with_vertex(int iTriangle, const Point3& p);
     void split_triangle_with_vertex(int iTriangle, int iVertex); //create 3 triangles with edges and new vertex, remove iTriangle
     void split_edge_with_vertex(int iTriangle1, int iTriangle2,int iVertex1, int iVertex2, int iVertexSplit); // 4 new triangles added at the end, unlink the two previous faces

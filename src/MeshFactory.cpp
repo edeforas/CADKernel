@@ -183,7 +183,7 @@ namespace MeshFactory
 		double PI = 3.14159265358979323846264338; // TODO
 		double z = dHeight / 2.;
 
-		int iNbSegmentLongitude = 2 + 4 * iNbSegments;
+		int iNbSegmentLongitude = 4 * iNbSegments;
 		// create vertices
 		for (int i = 0; i < iNbSegmentLongitude; i++)
 		{
@@ -204,14 +204,14 @@ namespace MeshFactory
 		m.add_quad(2 * iNbSegmentLongitude - 2, 2 * iNbSegmentLongitude - 1, 1, 0);
 
 		// associates triangles, up face 
-		for (int i = 0; i < iNbSegmentLongitude; i++)
+		for (int i = 0; i < iNbSegmentLongitude-1; i++)
 		{
 			m.add_triangle(iNbSegmentLongitude * 2, 2 * i, 2 * i + 2);
 		}
 		m.add_triangle(iNbSegmentLongitude * 2, 2 * iNbSegmentLongitude - 2, 0);
 
 		// associates triangles, down face 
-		for (int i = 0; i < iNbSegmentLongitude; i++)
+		for (int i = 0; i < iNbSegmentLongitude-1; i++)
 		{
 			m.add_triangle(iNbSegmentLongitude * 2 + 1, 2 * i + 3, 2 * i + 1);
 		}
