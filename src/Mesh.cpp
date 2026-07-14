@@ -75,20 +75,20 @@ bool Mesh::common_edge_with(int iTriangle1, Point3& p1, Point3& p2, Point3& p3) 
 	Point3 pA1, pA2, pA3;
 	_pKernel->get_triangle_vertices(iTriangle1, pA1, pA2, pA3);
 
-	int iNbVerticsCommon = 0;
+	int iNbVerticesCommon = 0;
 	if (p1.distance_square(pA1) < dTolerance || p1.distance_square(pA2) < dTolerance || p1.distance_square(pA3) < dTolerance)
-		iNbVerticsCommon++;	
+		iNbVerticesCommon++;	
 
 
 	if (p2.distance_square(pA1) < dTolerance || p2.distance_square(pA2) < dTolerance || p2.distance_square(pA3) < dTolerance)
-		iNbVerticsCommon++;	
+		iNbVerticesCommon++;	
 
 
 	if (p3.distance_square(pA1) < dTolerance || p3.distance_square(pA2) < dTolerance || p3.distance_square(pA3) < dTolerance)
-		iNbVerticsCommon++;	
+		iNbVerticesCommon++;	
 
 
-	return iNbVerticsCommon >= 2;
+	return iNbVerticesCommon >= 2;
 }
 
 ///////////////////////////////////////////////////////////////////////////

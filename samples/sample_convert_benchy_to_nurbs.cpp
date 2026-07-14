@@ -8,6 +8,8 @@
 #include "NurbsUtil.h"
 #include "StepFile.h"
 #include "NurbsSolid.h"
+#include <iostream>
+using namespace std;
 
 int main()
 {
@@ -15,16 +17,16 @@ int main()
     Mesh benchyMesh;
     STLFile::load("3dbenchy.stl", benchyMesh);
 
-    // convert mesh to MeshSolid
+    cout << "convert mesh to MeshSolid" << endl;
     MeshSolid benchyMeshSolid;
     MeshSolidUtil::generate_faces(benchyMesh, benchyMeshSolid);
     OBJFile::save("3dbenchy.obj", benchyMeshSolid);
 
-    // Convert the MeshSolid to a NURBS solid
+    cout << "Convert the MeshSolid to a NURBS solid" << std::endl;
     NurbsSolid ns;
     NurbsUtil::convert_mesh_to_nurbs(benchyMeshSolid, ns);
 
-    // Save the NURBS solid to a file
+    cout << "Saving the NURBS solid to a .step file" << endl;
     StepWriter sw;
     sw.open("3dbenchy.step");
     sw.write(ns);

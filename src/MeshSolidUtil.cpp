@@ -18,15 +18,14 @@ void MeshSolidUtil::generate_faces(const Mesh& m,  MeshSolid& ms, double dTolera
         m.get_normal(iTriangle, normal);
 
         bool bFoundSurface = false;
-        for(int iS=0; iS<vSurfaces.size(); iS++)
+        for(int iS=0; iS<vSurfaces.size() &&(!bFoundSurface); iS++)
         {
             Mesh& surface = vSurfaces[iS];
 
-            for (int jTriangle = 0; jTriangle < surface.nb_triangles(); jTriangle++)
+            for (int jTriangle = 0; jTriangle < surface.nb_triangles() && (!bFoundSurface); jTriangle++)
             {
-                Point3 q1, q2, q3, normal2;
-                surface.get_normal(jTriangle, normal2);
-
+                Point3 normal2;
+                surface.get_normal(jTriangle, normal2);                
                 double dAngle = normal.angle_with(normal2);
                 if ((dAngle < dToleranceAngleDeg))
                     if(surface.common_edge_with(jTriangle, p1, p2, p3))
