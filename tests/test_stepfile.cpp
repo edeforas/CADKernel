@@ -9,8 +9,12 @@
 #include <limits>
 #include <cctype>
 #include <iterator>
+#include <map>
 #include <set>
 #include <string>
+#include <vector>
+#include <cstdlib>
+#include <cmath>
 using namespace std;
 
 void test_bool(bool b, const string& sMessage = "")
@@ -51,6 +55,39 @@ void test_file_not_empty(const string& filename)
 	ifstream in(filename.c_str(), ios::binary | ios::ate);
 	test_bool(in.is_open(), "could not open exported file: " + filename);
 	test_bool(in.tellg() > 0, "exported STEP file is empty: " + filename);
+}
+
+map<int, vector<bool>> extract_oriented_edge_senses(const string& text)
+{
+	map<int, vector<bool>> sensesByEdge;
+	const string prefix = "=ORIENTED_EDGE('',*,*,#";
+	size_t pos = 0;
+	while ((pos = text.find(prefix, pos)) != string::npos)
+	{
+		const size_t idStart = pos + prefix.size();
+		const size_t idEnd = text.find(',', idStart);
+		test_bool(idEnd != string::npos, "oriented edge should reference an edge curve");
+
+		const int edgeId = atoi(text.substr(idStart, idEnd - idStart).c_str());
+		const size_t sensePos = idEnd + 1;
+		test_bool(text.compare(sensePos, 3, ".T.") == 0 || text.compare(sensePos, 3, ".F.") == 0,
+			"oriented edge should define its edge-curve sense");
+		sensesByEdge[edgeId].push_back(text.compare(sensePos, 3, ".T.") == 0);
+		pos = sensePos + 3;
+	}
+
+	return sensesByEdge;
+}
+
+void test_closed_solid_edges(const string& content, const string& description)
+{
+	const map<int, vector<bool>> edgeSenses = extract_oriented_edge_senses(content);
+	test_bool(!edgeSenses.empty(), description + " should contain shared edges");
+	for (const auto& edge : edgeSenses)
+	{
+		test_bool(edge.second.size() == 2, description + " edges should each belong to two faces");
+		test_bool(edge.second[0] != edge.second[1], description + " adjacent faces should use shared edges in opposite directions");
+	}
 }
 
 set<int> extract_defined_ids(const string& s)
@@ -208,6 +245,17 @@ void test_step_read_solid_box()
 	sw.write(source);
 	sw.close();
 
+	const string content = read_file_text("test_box.step");
+	test_bool(count_occurrences(content, "ADVANCED_FACE") == source.surfaces().size(), "solid box export should contain one STEP face per surface");
+	test_bool(count_occurrences(content, "FACE_OUTER_BOUND") == source.surfaces().size(), "solid box export should give every face an outer boundary");
+	test_bool(count_occurrences(content, "EDGE_CURVE") == 12, "solid box export should share its twelve topological edges");
+	test_bool(count_occurrences(content, "VERTEX_POINT") == 8, "solid box export should share its eight topological vertices");
+	test_bool(count_occurrences(content, "ORIENTED_EDGE") == source.surfaces().size() * 4, "solid box export should retain every face boundary edge use");
+	test_bool(content.find("ADVANCED_FACE('',(),") == string::npos, "solid box export should not contain faces with empty bounds");
+	test_bool(count_occurrences(content, "EDGE_CURVE") == count_occurrences(content, "ORIENTED_EDGE") / 2,
+		"solid box export should use each shared edge twice");
+	test_closed_solid_edges(content, "solid box");
+
 	NurbsSolid loaded;
 	StepReader reader;
 	reader.open("test_box.step");
@@ -225,6 +273,43 @@ void test_step_read_solid_box()
 		test_bool((int)s.knots_u().size() == s.nb_points_u() + s.degree_u() + 1, "loaded solid face U knots size mismatch");
 		test_bool((int)s.knots_v().size() == s.nb_points_v() + s.degree_v() + 1, "loaded solid face V knots size mismatch");
 	}
+}
+
+void test_step_export_bumped_cube_closed_shell()
+{
+	NurbsSolid source;
+	NurbsFactory::create_box(10., 10., 10., source);
+
+	for (auto& surface : source.surfaces())
+	{
+		surface.degree_elevation_u();
+		surface.degree_elevation_u();
+		surface.degree_elevation_v();
+		surface.degree_elevation_v();
+
+		for (int i = 1; i < 7; ++i)
+			surface.insert_knot_u(i / 7.);
+		for (int i = 1; i < 7; ++i)
+			surface.insert_knot_v(i / 7.);
+
+		for (auto& point : surface.points())
+		{
+			const double random = std::cos(point.x() * 1372761.12 + point.y() * 175815.7128 + point.z() * 265273.76 + 97.44);
+			point += point.normalized() * random;
+		}
+	}
+
+	StepWriter writer;
+	writer.open("test_bumped_cube.step");
+	test_bool(writer.is_open(), "step writer should open bumped cube file");
+	writer.write(source);
+	writer.close();
+
+	const string content = read_file_text("test_bumped_cube.step");
+	test_bool(count_occurrences(content, "MANIFOLD_SOLID_BREP") == 1, "bumped cube should export as a manifold solid");
+	test_bool(count_occurrences(content, "EDGE_CURVE") * 2 == count_occurrences(content, "ORIENTED_EDGE"),
+		"bumped cube should share every edge between its two adjacent faces");
+	test_closed_solid_edges(content, "bumped cube");
 }
 
 void test_step_read_solid_torus()
@@ -310,10 +395,11 @@ void test_step_read_multiple_solids()
 ///////////////////////////////////////////////////////////////////////////
 int main()
 {
+	test_step_export_bumped_cube_closed_shell();
 	test_step_export_torus();
 	test_step_export_with_invalid_knots_weights();
-	test_step_read_torus();
 	test_step_read_solid_box();
+	test_step_read_torus();
 	test_step_read_solid_torus();
 	test_step_export_multiple_solids_single_representation();
 	test_step_read_multiple_solids();

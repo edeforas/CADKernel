@@ -25,8 +25,11 @@ namespace NurbsUtil
 	void create_surface_from_curve(const NurbsCurve& curve, NurbsSurface& surface);
 	void create_surface_from_z(const std::vector<double>& z, int iSizeX, int iSizeY, int iDegree, NurbsSurface& n);
 	void create_solid_from_mesh(const Mesh & m, NurbsSolid& n);
-	void to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments=5, bool bClearMesh=true);
-	void to_mesh(const NurbsSolid& ns, Mesh& m, int iNbSegments=5);
+	// A zero segment count selects adaptive triangle tessellation.
+	void to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments=0, bool bClearMesh=true);
+	void to_mesh(const NurbsSolid& ns, Mesh& m, int iNbSegments=0);
+	// dRelativeTolerance is the chord-error limit relative to the control-point bounds.
+	void to_mesh_adaptive(const NurbsSurface& n, Mesh& m, double dRelativeTolerance=1.e-3, bool bClearMesh=true);
 	void to_mesh(const NurbsTrimmedSurface& ts, Mesh& m, int iNbSegments = 24, bool bClearMesh = true);
 	void to_mesh(const std::vector<NurbsTrimmedSurface>& trimmedSurfaces, Mesh& m, int iNbSegments = 24);
 	void to_controlpoints_mesh(const NurbsSurface& n, Mesh& m);

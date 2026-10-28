@@ -56,11 +56,32 @@ void test_nurbssurface_square()
 
 	Mesh m;
 	NurbsUtil::to_mesh(n, m);
+	test_bool(m.nb_triangles() == 2, "adaptive tessellation should keep a flat plane coarse");
 	OBJFile::save("test_nurbssurface_square.obj", m);
 
 	StepWriter sw;
 	sw.open("test_nurbssurface_square.step");
 	sw.write(n);
+}
+///////////////////////////////////////////////////////////////////////////
+void test_nurbssurface_adaptive_tessellation()
+{
+	NurbsSurface n;
+	n.set_degree(2, 1);
+	n.set_points({
+		Point3(-1., 0., 0.), Point3(0., 0., 2.), Point3(1., 0., 0.),
+		Point3(-1., 1., 0.), Point3(0., 1., 2.), Point3(1., 1., 0.)
+	}, 3, 2);
+	n.set_uniform_u();
+	n.set_uniform_v();
+	n.set_equals_weights();
+
+	Mesh adaptive;
+	NurbsUtil::to_mesh(n, adaptive);
+	Mesh coarse;
+	NurbsUtil::to_mesh(n, coarse, 1);
+	test_bool(adaptive.nb_triangles() > coarse.nb_triangles(),
+		"adaptive tessellation should refine a curved surface");
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbssurface_differential_plane()
@@ -674,6 +695,7 @@ void test_nurbssurface_assignment_mixed_degrees()
 int main()
 {
 	test_nurbssurface_square();
+	test_nurbssurface_adaptive_tessellation();
 	test_nurbssurface_differential_plane();
 	test_nurbssurface_flatdisk();
 	test_nurbssurface_differential_cylinder();
