@@ -208,6 +208,12 @@ void test_step_read_solid_box()
 	sw.write(source);
 	sw.close();
 
+	const string content = read_file_text("test_box.step");
+	test_bool(count_occurrences(content, "ADVANCED_FACE") == source.surfaces().size(), "solid box export should contain one STEP face per surface");
+	test_bool(count_occurrences(content, "FACE_OUTER_BOUND") == source.surfaces().size(), "solid box export should give every face an outer boundary");
+	test_bool(count_occurrences(content, "EDGE_CURVE") == source.surfaces().size() * 4, "solid box export should preserve the four straight boundary edges per face");
+	test_bool(content.find("ADVANCED_FACE('',(),") == string::npos, "solid box export should not contain faces with empty bounds");
+
 	NurbsSolid loaded;
 	StepReader reader;
 	reader.open("test_box.step");

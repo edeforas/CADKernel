@@ -468,7 +468,28 @@ int StepWriter::write_advanced_face(const NurbsSurface& n)
 		}
 		_f << "),#" << surfaceId << ",.T.);" << endl;
 	} else {
-		_f << "#" << faceId << "=ADVANCED_FACE('',(),#" << surfaceId << ",.T.);" << endl;
+		std::vector<Point3> boundary;
+		std::vector<Point3> edge;
+
+		n.edge_v0().to_polyline(boundary);
+
+		n.edge_u1().to_polyline(edge);
+		for (size_t i = 1; i < edge.size(); ++i)
+			boundary.push_back(edge[i]);
+
+		n.edge_v1().to_polyline(edge);
+		for (std::vector<Point3>::const_reverse_iterator it = edge.rbegin() + (edge.empty() ? 0 : 1); it != edge.rend(); ++it)
+			boundary.push_back(*it);
+
+		n.edge_u0().to_polyline(edge);
+		for (std::vector<Point3>::const_reverse_iterator it = edge.rbegin() + (edge.empty() ? 0 : 1); it != edge.rend(); ++it)
+			boundary.push_back(*it);
+
+		const int boundId = write_trim_loop_bound(boundary, false);
+		if (boundId < 0)
+			return -1;
+
+		_f << "#" << faceId << "=ADVANCED_FACE('',(#" << boundId << "),#" << surfaceId << ",.T.);" << endl;
 	}
 	return faceId;
 }
@@ -500,6 +521,29 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 
 	if (!almost_same_point(loop.front(), loop.back()))
 		loop.push_back(loop.front());
+
+	bool removedCollinearPoint = true;
+	while (removedCollinearPoint && loop.size() > 4)
+	{
+		removedCollinearPoint = false;
+		const size_t vertexCount = loop.size() - 1;
+		for (size_t i = 0; i < vertexCount; ++i)
+		{
+			const size_t previous = (i + vertexCount - 1) % vertexCount;
+			const size_t next = (i + 1) % vertexCount;
+			const Point3 incoming = loop[i] - loop[previous];
+			const Point3 outgoing = loop[next] - loop[i];
+			const double scale = incoming.norm_square() * outgoing.norm_square();
+			if (incoming.dot_product(outgoing) > 0. &&
+				incoming.cross_product(outgoing).norm_square() <= 1.e-24 * scale)
+			{
+				loop.erase(loop.begin() + i);
+				loop.back() = loop.front();
+				removedCollinearPoint = true;
+				break;
+			}
+		}
+	}
 
 	if (loop.size() < 4)
 		return -1;
