@@ -9,8 +9,11 @@
 #include <limits>
 #include <cctype>
 #include <iterator>
+#include <map>
 #include <set>
 #include <string>
+#include <vector>
+#include <cstdlib>
 using namespace std;
 
 void test_bool(bool b, const string& sMessage = "")
@@ -51,6 +54,28 @@ void test_file_not_empty(const string& filename)
 	ifstream in(filename.c_str(), ios::binary | ios::ate);
 	test_bool(in.is_open(), "could not open exported file: " + filename);
 	test_bool(in.tellg() > 0, "exported STEP file is empty: " + filename);
+}
+
+map<int, vector<bool>> extract_oriented_edge_senses(const string& text)
+{
+	map<int, vector<bool>> sensesByEdge;
+	const string prefix = "=ORIENTED_EDGE('',*,*,#";
+	size_t pos = 0;
+	while ((pos = text.find(prefix, pos)) != string::npos)
+	{
+		const size_t idStart = pos + prefix.size();
+		const size_t idEnd = text.find(',', idStart);
+		test_bool(idEnd != string::npos, "oriented edge should reference an edge curve");
+
+		const int edgeId = atoi(text.substr(idStart, idEnd - idStart).c_str());
+		const size_t sensePos = idEnd + 1;
+		test_bool(text.compare(sensePos, 3, ".T.") == 0 || text.compare(sensePos, 3, ".F.") == 0,
+			"oriented edge should define its edge-curve sense");
+		sensesByEdge[edgeId].push_back(text.compare(sensePos, 3, ".T.") == 0);
+		pos = sensePos + 3;
+	}
+
+	return sensesByEdge;
 }
 
 set<int> extract_defined_ids(const string& s)
@@ -211,8 +236,17 @@ void test_step_read_solid_box()
 	const string content = read_file_text("test_box.step");
 	test_bool(count_occurrences(content, "ADVANCED_FACE") == source.surfaces().size(), "solid box export should contain one STEP face per surface");
 	test_bool(count_occurrences(content, "FACE_OUTER_BOUND") == source.surfaces().size(), "solid box export should give every face an outer boundary");
-	test_bool(count_occurrences(content, "EDGE_CURVE") == source.surfaces().size() * 4, "solid box export should preserve the four straight boundary edges per face");
+	test_bool(count_occurrences(content, "EDGE_CURVE") == 12, "solid box export should share its twelve topological edges");
+	test_bool(count_occurrences(content, "VERTEX_POINT") == 8, "solid box export should share its eight topological vertices");
+	test_bool(count_occurrences(content, "ORIENTED_EDGE") == source.surfaces().size() * 4, "solid box export should retain every face boundary edge use");
 	test_bool(content.find("ADVANCED_FACE('',(),") == string::npos, "solid box export should not contain faces with empty bounds");
+	const map<int, vector<bool>> edgeSenses = extract_oriented_edge_senses(content);
+	test_bool(edgeSenses.size() == 12, "solid box export should use every shared edge");
+	for (const auto& edge : edgeSenses)
+	{
+		test_bool(edge.second.size() == 2, "each solid box edge should belong to two faces");
+		test_bool(edge.second[0] != edge.second[1], "adjacent faces should use shared edges in opposite directions");
+	}
 
 	NurbsSolid loaded;
 	StepReader reader;
@@ -318,8 +352,8 @@ int main()
 {
 	test_step_export_torus();
 	test_step_export_with_invalid_knots_weights();
-	test_step_read_torus();
 	test_step_read_solid_box();
+	test_step_read_torus();
 	test_step_read_solid_torus();
 	test_step_export_multiple_solids_single_representation();
 	test_step_read_multiple_solids();

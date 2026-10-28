@@ -54,6 +54,10 @@ private:
 	int _iProductDefShapeId;
 	RepresentationKind _repKind;
 	vector<int> _repItems;
+	bool _writingSolid;
+	map<string, int> _solidPointIds;
+	map<string, int> _solidVertexIds;
+	map<string, int> _solidEdgeCurveIds;
 };
 
 class StepReader

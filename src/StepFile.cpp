@@ -56,7 +56,8 @@ StepWriter::StepWriter() :
 	_iItemIndent(10),
 	_iGeomContextId(-1),
 	_iProductDefShapeId(-1),
-	_repKind(REP_NONE)
+	_repKind(REP_NONE),
+	_writingSolid(false)
 {
 }
 
@@ -500,6 +501,16 @@ namespace
 	{
 		return (a - b).norm_square() <= 1.e-24;
 	}
+
+	std::string solid_topology_point_key(const Point3& point)
+	{
+		std::ostringstream key;
+		key << std::setprecision(12) << std::scientific
+			<< sanitize_double(point.x()) << ","
+			<< sanitize_double(point.y()) << ","
+			<< sanitize_double(point.z());
+		return key.str();
+	}
 }
 
 int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool bHole)
@@ -552,23 +563,36 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 	if (vertexCount < 3)
 		return -1;
 
+	std::vector<std::string> pointKeys(vertexCount);
 	std::vector<int> vertexPointIds(vertexCount, -1);
+	std::vector<int> vertexIds(vertexCount, -1);
 	for (int i = 0; i < vertexCount; ++i)
 	{
+		pointKeys[i] = solid_topology_point_key(loop[i]);
+		auto pointIt = _writingSolid ? _solidPointIds.find(pointKeys[i]) : _solidPointIds.end();
+		auto vertexIt = _writingSolid ? _solidVertexIds.find(pointKeys[i]) : _solidVertexIds.end();
+		if (_writingSolid && pointIt != _solidPointIds.end() && vertexIt != _solidVertexIds.end())
+		{
+			vertexPointIds[i] = pointIt->second;
+			vertexIds[i] = vertexIt->second;
+			continue;
+		}
+
 		const int pId = next_id();
 		vertexPointIds[i] = pId;
 		_f << "#" << pId << "=CARTESIAN_POINT('',("
 			<< sanitize_double(loop[i].x()) << ","
 			<< sanitize_double(loop[i].y()) << ","
 			<< sanitize_double(loop[i].z()) << "));" << endl;
-	}
 
-	std::vector<int> vertexIds(vertexCount, -1);
-	for (int i = 0; i < vertexCount; ++i)
-	{
 		const int vId = next_id();
 		vertexIds[i] = vId;
-		_f << "#" << vId << "=VERTEX_POINT('',#" << vertexPointIds[i] << ");" << endl;
+		_f << "#" << vId << "=VERTEX_POINT('',#" << pId << ");" << endl;
+		if (_writingSolid)
+		{
+			_solidPointIds[pointKeys[i]] = pId;
+			_solidVertexIds[pointKeys[i]] = vId;
+		}
 	}
 
 	std::vector<int> orientedEdgeIds;
@@ -577,29 +601,44 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 	for (int i = 0; i < vertexCount; ++i)
 	{
 		const int iNext = (i + 1) % vertexCount;
-		Point3 d = loop[iNext] - loop[i];
-		double dNorm = d.norm();
-		if (dNorm <= 1.e-12)
-			continue;
-		d /= dNorm;
+		const bool forward = !_writingSolid || pointKeys[i] < pointKeys[iNext];
+		const int start = forward ? i : iNext;
+		const int end = forward ? iNext : i;
+		const std::string edgeKey = pointKeys[start] + "|" + pointKeys[end];
+		auto edgeIt = _writingSolid ? _solidEdgeCurveIds.find(edgeKey) : _solidEdgeCurveIds.end();
+		int edgeCurveId = -1;
+		if (_writingSolid && edgeIt != _solidEdgeCurveIds.end())
+		{
+			edgeCurveId = edgeIt->second;
+		}
+		else
+		{
+			Point3 d = loop[end] - loop[start];
+			const double dNorm = d.norm();
+			if (dNorm <= 1.e-12)
+				continue;
+			d /= dNorm;
 
-		const int dirId = next_id();
-		_f << "#" << dirId << "=DIRECTION('',("
-			<< sanitize_double(d.x()) << ","
-			<< sanitize_double(d.y()) << ","
-			<< sanitize_double(d.z()) << "));" << endl;
+			const int dirId = next_id();
+			_f << "#" << dirId << "=DIRECTION('',("
+				<< sanitize_double(d.x()) << ","
+				<< sanitize_double(d.y()) << ","
+				<< sanitize_double(d.z()) << "));" << endl;
 
-		const int vecId = next_id();
-		_f << "#" << vecId << "=VECTOR('',#" << dirId << ",1.);" << endl;
+			const int vecId = next_id();
+			_f << "#" << vecId << "=VECTOR('',#" << dirId << ",1.);" << endl;
 
-		const int lineId = next_id();
-		_f << "#" << lineId << "=LINE('',#" << vertexPointIds[i] << ",#" << vecId << ");" << endl;
+			const int lineId = next_id();
+			_f << "#" << lineId << "=LINE('',#" << vertexPointIds[start] << ",#" << vecId << ");" << endl;
 
-		const int edgeCurveId = next_id();
-		_f << "#" << edgeCurveId << "=EDGE_CURVE('',#" << vertexIds[i] << ",#" << vertexIds[iNext] << ",#" << lineId << ",.T.);" << endl;
+			edgeCurveId = next_id();
+			_f << "#" << edgeCurveId << "=EDGE_CURVE('',#" << vertexIds[start] << ",#" << vertexIds[end] << ",#" << lineId << ",.T.);" << endl;
+			if (_writingSolid)
+				_solidEdgeCurveIds[edgeKey] = edgeCurveId;
+		}
 
 		const int orientedEdgeId = next_id();
-		_f << "#" << orientedEdgeId << "=ORIENTED_EDGE('',*,*,#" << edgeCurveId << ",.T.);" << endl;
+		_f << "#" << orientedEdgeId << "=ORIENTED_EDGE('',*,*,#" << edgeCurveId << "," << (forward ? ".T." : ".F.") << ");" << endl;
 
 		orientedEdgeIds.push_back(orientedEdgeId);
 	}
@@ -647,6 +686,11 @@ void StepWriter::write(const NurbsSolid& n)
 	if ((_iGeomContextId < 0) || (_iProductDefShapeId < 0))
 		return;
 
+	_solidPointIds.clear();
+	_solidVertexIds.clear();
+	_solidEdgeCurveIds.clear();
+	_writingSolid = true;
+
 	std::vector<int> faceIds;
 	faceIds.reserve(n.surfaces().size());
 	for (const auto& s : n.surfaces())
@@ -655,6 +699,11 @@ void StepWriter::write(const NurbsSolid& n)
 		if (id > 0)
 			faceIds.push_back(id);
 	}
+
+	_writingSolid = false;
+	_solidPointIds.clear();
+	_solidVertexIds.clear();
+	_solidEdgeCurveIds.clear();
 
 	if (faceIds.empty())
 		return;
