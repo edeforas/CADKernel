@@ -13,19 +13,22 @@ using namespace std;
 int main()
 {
 	cout << endl << "sample_nurbs_surface_degree" << endl;
-
+	cout << "Create several nurbsurfaces with degree from 1 to 3 in X and Y" << endl;
+	
 	int nbPointsU = 9;
 	int nbPointsV = 7;
+
+	// create surface
+	vector<Point3> points,pt;
+	for (int v = 0; v < nbPointsV; v++)
+		for (int u = 0; u < nbPointsU; u++)
+			points.push_back(Point3(u, v, 2.*(float)rand() / RAND_MAX));
+
 	OBJWriter ow;
 	ow.open("sample_nurbs_surface_degree.obj");
 
 	StepWriter sw;
 	sw.open("sample_nurbs_surface_degree.step");
-
-	vector<Point3> points,pt;
-	for (int v = 0; v < nbPointsV; v++)
-		for (int u = 0; u < nbPointsU; u++)
-			points.push_back(Point3(u, v, 2.*(float)rand() / RAND_MAX));
 
 	for(int uDeg=1; uDeg<=3;uDeg++)
 		for (int vDeg = 1; vDeg <= 3; vDeg++)

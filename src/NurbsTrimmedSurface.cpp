@@ -4,6 +4,63 @@
 #include <algorithm>
 #include <cmath>
 
+NurbsTrimLoop::NurbsTrimLoop() : curve(nullptr), hole(false)
+{}
+
+NurbsTrimLoop::NurbsTrimLoop(const NurbsTrimLoop& other) 
+	: points(other.points), hole(other.hole), curve(nullptr)
+{
+	if (other.curve)
+		curve = new NurbsCurve(*other.curve);
+}
+
+NurbsTrimLoop& NurbsTrimLoop::operator=(const NurbsTrimLoop& other)
+{
+	if (this != &other)
+	{
+		points = other.points;
+		hole = other.hole;
+		delete curve;
+		curve = nullptr;
+		if (other.curve)
+			curve = new NurbsCurve(*other.curve);
+	}
+	return *this;
+}
+
+NurbsTrimLoop::~NurbsTrimLoop()
+{
+	delete curve;
+}
+
+bool NurbsTrimLoop::has_curve() const
+{ 
+	return curve != nullptr;
+}
+	
+// Get points, sampling the curve if needed
+const std::vector<NurbsUvPoint>& NurbsTrimLoop::get_points(int numSamples ) const
+{
+	if (points.empty() && curve != nullptr)
+	{
+		// Lazy sampling: generate points from curve on first access
+		const_cast<std::vector<NurbsUvPoint>&>(points).clear();
+		
+		const std::vector<double>& knots = curve->knots();
+		double uMin = knots.front();
+		double uMax = knots.back();
+		
+		for (int i = 0; i < numSamples; ++i)
+		{
+			double t = uMin + (uMax - uMin) * i / numSamples;
+			Point3 p;
+			curve->evaluate(t, p);
+			const_cast<std::vector<NurbsUvPoint>&>(points).push_back({ p.x(), p.y() });
+		}
+	}
+	return points;
+}
+
 namespace
 {
 	double uv_dist_sq(const NurbsUvPoint& a, const NurbsUvPoint& b)
@@ -131,22 +188,18 @@ namespace
 
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::NurbsTrimmedSurface() :NurbsSurface()
-{
-}
+{ }
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::NurbsTrimmedSurface(const NurbsSurface& n) :NurbsSurface(n)
-{
-}
+{ }
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::NurbsTrimmedSurface(const NurbsTrimmedSurface& n) :
 	NurbsSurface(n),
 	_trimLoops(n._trimLoops)
-{
-}
+{ }
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface::~NurbsTrimmedSurface()
-{
-}
+{ }
 /////////////////////////////////////////////////////////////////////////
 NurbsTrimmedSurface& NurbsTrimmedSurface::operator=(const NurbsTrimmedSurface& other)
 {
@@ -179,8 +232,6 @@ void NurbsTrimmedSurface::add_outer_loop(const NurbsCurve& curve)
 	NurbsTrimLoop loop;
 	loop.hole = false;
 	loop.curve = new NurbsCurve(curve);
-	
-	// Don't sample points yet - will be done lazily at mesh time
 	_trimLoops.push_back(loop);
 }
 /////////////////////////////////////////////////////////////////////////
@@ -189,8 +240,6 @@ void NurbsTrimmedSurface::add_inner_loop(const NurbsCurve& curve)
 	NurbsTrimLoop loop;
 	loop.hole = true;
 	loop.curve = new NurbsCurve(curve);
-	
-	// Don't sample points yet - will be done lazily at mesh time
 	_trimLoops.push_back(loop);
 }
 /////////////////////////////////////////////////////////////////////////

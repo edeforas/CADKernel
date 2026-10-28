@@ -15,60 +15,21 @@ struct NurbsUvPoint
 
 class NurbsTrimLoop
 {
-	public:
+public:
+	NurbsTrimLoop();
+	NurbsTrimLoop(const NurbsTrimLoop& other) ;
+	NurbsTrimLoop& operator=(const NurbsTrimLoop& other);
+
+	~NurbsTrimLoop();
+
+	bool has_curve() const;
+	
+	// Get points, sampling the curve if needed
+	const std::vector<NurbsUvPoint>& get_points(int numSamples = 100) const;
+
 	std::vector<NurbsUvPoint> points;  // For backward compatibility and when curve is not used
 	NurbsCurve* curve;  // Smooth curve representation (takes ownership if set)
 	bool hole;
-	
-	NurbsTrimLoop() : curve(nullptr), hole(false) {}
-	NurbsTrimLoop(const NurbsTrimLoop& other) 
-		: points(other.points), hole(other.hole), curve(nullptr)
-	{
-		if (other.curve)
-			curve = new NurbsCurve(*other.curve);
-	}
-	NurbsTrimLoop& operator=(const NurbsTrimLoop& other)
-	{
-		if (this != &other)
-		{
-			points = other.points;
-			hole = other.hole;
-			delete curve;
-			curve = nullptr;
-			if (other.curve)
-				curve = new NurbsCurve(*other.curve);
-		}
-		return *this;
-	}
-	~NurbsTrimLoop()
-	{
-		delete curve;
-	}
-	
-	bool has_curve() const { return curve != nullptr; }
-	
-	// Get points, sampling the curve if needed
-	const std::vector<NurbsUvPoint>& get_points(int numSamples = 100) const
-	{
-		if (points.empty() && curve != nullptr)
-		{
-			// Lazy sampling: generate points from curve on first access
-			const_cast<std::vector<NurbsUvPoint>&>(points).clear();
-			
-			const std::vector<double>& knots = curve->knots();
-			double uMin = knots.front();
-			double uMax = knots.back();
-			
-			for (int i = 0; i < numSamples; ++i)
-			{
-				double t = uMin + (uMax - uMin) * i / numSamples;
-				Point3 p;
-				curve->evaluate(t, p);
-				const_cast<std::vector<NurbsUvPoint>&>(points).push_back({ p.x(), p.y() });
-			}
-		}
-		return points;
-	}
 };
 
 class NurbsTrimmedSurface : public NurbsSurface

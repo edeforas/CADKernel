@@ -319,7 +319,7 @@ namespace
 		if (!diagnostics)
 			return;
 
-		const int iResolution = 16;
+		const int iResolution = 32;
 		std::vector<SurfaceSample> samplesA = sample_surface_grid(surfaceA, iResolution);
 		std::vector<SurfaceSample> samplesB = sample_surface_grid(surfaceB, iResolution);
 
@@ -327,6 +327,8 @@ namespace
 			return;
 
 		const double dTolSq = dTol * dTol;
+		const double dMergeTol = dTol * 0.05;
+		const double dRefineTol = dTol * 0.01;
 		std::vector<NurbsIntersectionSample> rawSamples;
 		rawSamples.reserve(samplesA.size());
 
@@ -348,27 +350,28 @@ namespace
 			if (pBestB && dBest <= dTolSq)
 			{
 				NurbsIntersectionSample inter = refine_surface_match(surfaceA, surfaceB, sampleA.u, sampleA.v, pBestB->u, pBestB->v);
-				if (near_existing_sample(rawSamples, inter.point, dTolSq))
+				if (near_existing_sample(rawSamples, inter.point, dMergeTol * dMergeTol))
 					continue;
 
 				Point3 pARefined;
 				Point3 pBRefined;
 				surfaceA.evaluate(inter.uA, inter.vA, pARefined);
 				surfaceB.evaluate(inter.uB, inter.vB, pBRefined);
-				if (pARefined.distance_square(pBRefined) > dTolSq)
+				if (pARefined.distance_square(pBRefined) > dRefineTol * dRefineTol)
 					continue;
 
 				rawSamples.push_back(inter);
 			}
 		}
 
-		const double dBreakDistSq = dTolSq * 9.;
+		const double dBreakDist = dTol * 11.;
+		const double dBreakDistSq = dBreakDist * dBreakDist;
 		std::vector<NurbsIntersectionCurve> curves = chain_intersection_samples(rawSamples, dBreakDistSq);
 
 		for (const auto& c : curves)
 		{
-			NurbsIntersectionCurve resampled = resample_curve_equal_arclength(c, dTol * 0.75, 96);
-			finalize_curve_topology_and_winding(resampled, dTol);
+			NurbsIntersectionCurve resampled = resample_curve_equal_arclength(c, dTol * 0.05, 512);
+			finalize_curve_topology_and_winding(resampled, dTol * 5.);
 			if (resampled.samples.size() >= 2)
 				diagnostics->curves.push_back(resampled);
 		}
@@ -587,6 +590,93 @@ namespace
 
 	bool point_inside_proxy(const SolidClassifyProxy& proxy, const Point3& p);
 
+	bool add_periodic_u_trim_from_classification(
+		const NurbsSurface& surface,
+		const SolidClassifyProxy& other,
+		NurbsTrimmedSurface& trimmed)
+	{
+		const int sampleCount = 64;
+		const double uSamples[] = { 0.125, 0.375, 0.625, 0.875 };
+		std::vector<bool> selected(sampleCount, false);
+
+		auto isSelected = [&](double v)
+		{
+			int selectedCount = 0;
+			for (double u : uSamples)
+			{
+				Point3 point;
+				surface.evaluate(u, v, point);
+				if (point_inside_proxy(other, point))
+					selectedCount++;
+			}
+			return selectedCount >= 3;
+		};
+
+		for (int i = 0; i < sampleCount; ++i)
+			selected[i] = isSelected((i + 0.5) / sampleCount);
+
+		bool addedLoop = false;
+		for (int i = 0; i < sampleCount;)
+		{
+			if (!selected[i])
+			{
+				++i;
+				continue;
+			}
+
+			const int first = i;
+			while (i + 1 < sampleCount && selected[i + 1])
+				++i;
+			const int last = i;
+
+			double vMin = 0.;
+			if (first > 0)
+			{
+				double outside = (first - 0.5) / sampleCount;
+				double inside = (first + 0.5) / sampleCount;
+				for (int iteration = 0; iteration < 12; ++iteration)
+				{
+					const double middle = (outside + inside) * 0.5;
+					if (isSelected(middle))
+						inside = middle;
+					else
+						outside = middle;
+				}
+				vMin = inside;
+			}
+
+			double vMax = 1.;
+			if (last + 1 < sampleCount)
+			{
+				double inside = (last + 0.5) / sampleCount;
+				double outside = (last + 1.5) / sampleCount;
+				for (int iteration = 0; iteration < 12; ++iteration)
+				{
+					const double middle = (inside + outside) * 0.5;
+					if (isSelected(middle))
+						inside = middle;
+					else
+						outside = middle;
+				}
+				vMax = inside;
+			}
+
+			if (vMax - vMin > 1.e-6)
+			{
+				trimmed.add_outer_loop({
+					{ 0., vMin },
+					{ 1., vMin },
+					{ 1., vMax },
+					{ 0., vMax }
+				});
+				addedLoop = true;
+			}
+			++i;
+		}
+
+		return addedLoop;
+	}
+
 	NurbsTrimmedSurface make_trimmed_surface_with_loops(
 		const NurbsSurface& base,
 		const std::vector<std::vector<NurbsUvPoint>>& loops,
@@ -786,6 +876,16 @@ namespace
 			n.reverse_u();
 
 		NurbsTrimmedSurface ts(n);
+		const bool hasUsableLoop = std::any_of(loops.begin(), loops.end(), [](const std::vector<NurbsUvPoint>& loop)
+		{
+			return loop.size() >= 3 && std::fabs(signed_area_uv_loop(loop)) >= 1.e-6;
+		});
+		if (!hasUsableLoop && bKeepInsideOther && sourceSurface.is_closed_u()
+			&& add_periodic_u_trim_from_classification(sourceSurface, otherProxy, ts))
+		{
+			return ts;
+		}
+
 		std::vector<LoopNode> nodes;
 		nodes.reserve(loops.size());
 
@@ -919,7 +1019,6 @@ namespace
 			fullDomain.push_back({ 0., 1. });
 			ts.add_outer_loop(fullDomain);
 		}
-
 		return ts;
 	}
 

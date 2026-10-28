@@ -37,8 +37,6 @@ std::vector<double> build_open_uniform_knots(int degree, int nbPoints);
 std::vector<double> build_segmented_quadratic_knots(int nbSegments);
 
 
-
-
 // Compute basis function derivatives up to 2nd order
 // ders should be sized [3][degree+1]
 void basis_function_derivatives(

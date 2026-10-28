@@ -1,28 +1,22 @@
 include_directories(../src)
 
-add_executable(sample_nurbs_boolean sample_nurbs_boolean.cpp  )
-target_link_libraries(sample_nurbs_boolean libCADTest)
-
 add_executable(sample_nurbs_spheres_difference sample_nurbs_spheres_difference.cpp)
 target_link_libraries(sample_nurbs_spheres_difference libCADTest)
 
-add_executable(sample_bump_cube sample_bump_cube.cpp  )
-target_link_libraries(sample_bump_cube libCADTest)
+add_executable(sample_nurbs_bump_cube sample_nurbs_bump_cube.cpp  )
+target_link_libraries(sample_nurbs_bump_cube libCADTest)
 
-add_executable(sample_cube sample_cube.cpp  )
-target_link_libraries(sample_cube libCADTest)
+add_executable(sample_nurbs_cube sample_nurbs_cube.cpp  )
+target_link_libraries(sample_nurbs_cube libCADTest)
 
 add_executable(sample_nurbs_mandelbrot sample_nurbs_mandelbrot.cpp )
 target_link_libraries(sample_nurbs_mandelbrot libCADTest)
 
-add_executable(sample_nurbs_offseting sample_nurbs_offseting.cpp )
-target_link_libraries(sample_nurbs_offseting libCADTest)
+add_executable(sample_nurbs_offset sample_nurbs_offset.cpp )
+target_link_libraries(sample_nurbs_offset libCADTest)
 
-add_executable(sample_fractal_tetrahedron sample_fractal_tetrahedron.cpp )
-target_link_libraries(sample_fractal_tetrahedron libCADTest)
-
-add_executable(sample_mesh_mandelbrot sample_mesh_mandelbrot.cpp )
-target_link_libraries(sample_mesh_mandelbrot libCADTest)
+add_executable(sample_mesh_fractal_tetrahedron sample_mesh_fractal_tetrahedron.cpp )
+target_link_libraries(sample_mesh_fractal_tetrahedron libCADTest)
 
 add_executable(sample_mesh_factory sample_mesh_factory.cpp )
 target_link_libraries(sample_mesh_factory libCADTest)
@@ -45,17 +39,11 @@ target_link_libraries(sample_nurbs_fillet libCADTest)
 add_executable(sample_nurbs_extrude sample_nurbs_extrude.cpp )
 target_link_libraries(sample_nurbs_extrude libCADTest)
 
-add_executable(sample_mobius_strip sample_mobius_strip.cpp )
-target_link_libraries(sample_mobius_strip libCADTest)
-
 add_executable(sample_nurbs_cube_cylinder_difference sample_nurbs_cube_cylinder_difference.cpp)
 target_link_libraries(sample_nurbs_cube_cylinder_difference libCADTest)
 
-add_executable(sample_nurbs_curve_continuity sample_nurbs_curve_continuity.cpp)
-target_link_libraries(sample_nurbs_curve_continuity libCADTest)
+add_executable(sample_nurbs_trimmed_surface sample_nurbs_trimmed_surface.cpp)
+target_link_libraries(sample_nurbs_trimmed_surface libCADTest)
 
-add_executable(sample_trimmed_nurbs_surface sample_trimmed_nurbs_surface.cpp)
-target_link_libraries(sample_trimmed_nurbs_surface libCADTest)
-
-add_executable(sample_convert_cylinder_to_nurbs sample_convert_cylinder_to_nurbs.cpp)
-target_link_libraries(sample_convert_cylinder_to_nurbs libCADTest)
+add_executable(sample_convert_mesh_to_nurbs sample_convert_mesh_to_nurbs.cpp)
+target_link_libraries(sample_convert_mesh_to_nurbs libCADTest)

@@ -9,7 +9,7 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////
-void ImageUtil::convert_to_bw(const Image& im, Image& imBW)
+void ImageUtil::convert_to_grayscale(const Image& im, Image& imBW)
 {
 	// todo check im format before conversion
 

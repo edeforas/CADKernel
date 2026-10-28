@@ -21,7 +21,7 @@ int main()
 	Image imgMandelbrot;
 	ImageGenerator::Mandelbrot(imgMandelbrot, 64, 64,255);
 	Image imBW;
-	ImageUtil::convert_to_bw(imgMandelbrot, imBW);
+	ImageUtil::convert_to_grayscale(imgMandelbrot, imBW);
 
 	cout << "Converting Mandelbrot to NurbsSurface" << endl;
 	NurbsSurface n;

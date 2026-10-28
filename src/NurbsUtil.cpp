@@ -231,6 +231,12 @@ void NurbsUtil::to_controlpoints_mesh(const NurbsSurface& n, Mesh& m) //show the
 ///////////////////////////////////////////////////////////////////////////
 void NurbsUtil::to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments, bool bClearMesh)
 {
+	if (iNbSegments <= 0)
+	{
+		to_mesh_adaptive(n, m, 1.e-3, bClearMesh);
+		return;
+	}
+
 	if (bClearMesh)
 		m.clear();
 
@@ -275,6 +281,114 @@ void NurbsUtil::to_mesh(const NurbsSurface& n, Mesh& m, int iNbSegments, bool bC
 				iNbPointsStart + iEndU + (iNbPointsU + 1) * iEndV,
 				iNbPointsStart + u + (iNbPointsU + 1) * iEndV
 			);
+		}
+}
+///////////////////////////////////////////////////////////////////////////
+void NurbsUtil::to_mesh_adaptive(const NurbsSurface& n, Mesh& m, double dRelativeTolerance, bool bClearMesh)
+{
+	if (bClearMesh)
+		m.clear();
+
+	const int nU = n.nb_points_u();
+	const int nV = n.nb_points_v();
+	if (nU < 1 || nV < 1 || n.points().size() != (size_t)nU * nV)
+		return;
+
+	if (!std::isfinite(dRelativeTolerance) || dRelativeTolerance <= 0.)
+		dRelativeTolerance = 1.e-3;
+
+	double xMin = n.points()[0].x();
+	double xMax = xMin;
+	double yMin = n.points()[0].y();
+	double yMax = yMin;
+	double zMin = n.points()[0].z();
+	double zMax = zMin;
+	for (const Point3& point : n.points())
+	{
+		xMin = std::min(xMin, point.x());
+		xMax = std::max(xMax, point.x());
+		yMin = std::min(yMin, point.y());
+		yMax = std::max(yMax, point.y());
+		zMin = std::min(zMin, point.z());
+		zMax = std::max(zMax, point.z());
+	}
+
+	double scale = Point3(xMax - xMin, yMax - yMin, zMax - zMin).norm();
+	if (scale <= 1.e-12)
+		scale = 1.;
+	const double tolerance = scale * dRelativeTolerance;
+
+	const int maxSegments = 256;
+	int segmentsU = std::max(1, nU - std::max(0, n.degree_u()));
+	int segmentsV = std::max(1, nV - std::max(0, n.degree_v()));
+	segmentsU = std::min(segmentsU, maxSegments / 2);
+	segmentsV = std::min(segmentsV, maxSegments / 2);
+
+	std::vector<Point3> samples;
+	auto sample_surface = [&](int countU, int countV, std::vector<Point3>& points)
+	{
+		points.resize((size_t)(countU + 1) * (countV + 1));
+		for (int v = 0; v <= countV; ++v)
+			for (int u = 0; u <= countU; ++u)
+				n.evaluate((double)u / countU, (double)v / countV,
+					points[(size_t)u + (size_t)(countU + 1) * v]);
+	};
+	sample_surface(segmentsU, segmentsV, samples);
+
+	while (segmentsU < maxSegments && segmentsV < maxSegments)
+	{
+		const int refinedU = segmentsU * 2;
+		const int refinedV = segmentsV * 2;
+		std::vector<Point3> refinedSamples;
+		sample_surface(refinedU, refinedV, refinedSamples);
+		const int refinedStride = refinedU + 1;
+		bool needsRefinement = false;
+
+		for (int v = 0; v < segmentsV && !needsRefinement; ++v)
+			for (int u = 0; u < segmentsU && !needsRefinement; ++u)
+			{
+				const Point3& p00 = refinedSamples[(size_t)(2 * u) + (size_t)refinedStride * (2 * v)];
+				const Point3& p10 = refinedSamples[(size_t)(2 * u + 2) + (size_t)refinedStride * (2 * v)];
+				const Point3& p11 = refinedSamples[(size_t)(2 * u + 2) + (size_t)refinedStride * (2 * v + 2)];
+				const Point3& p01 = refinedSamples[(size_t)(2 * u) + (size_t)refinedStride * (2 * v + 2)];
+				const Point3& pBottom = refinedSamples[(size_t)(2 * u + 1) + (size_t)refinedStride * (2 * v)];
+				const Point3& pRight = refinedSamples[(size_t)(2 * u + 2) + (size_t)refinedStride * (2 * v + 1)];
+				const Point3& pTop = refinedSamples[(size_t)(2 * u + 1) + (size_t)refinedStride * (2 * v + 2)];
+				const Point3& pLeft = refinedSamples[(size_t)(2 * u) + (size_t)refinedStride * (2 * v + 1)];
+				const Point3& pCenter = refinedSamples[(size_t)(2 * u + 1) + (size_t)refinedStride * (2 * v + 1)];
+
+				needsRefinement =
+					(pBottom - (p00 + p10) * 0.5).norm() > tolerance ||
+					(pRight - (p10 + p11) * 0.5).norm() > tolerance ||
+					(pTop - (p01 + p11) * 0.5).norm() > tolerance ||
+					(pLeft - (p00 + p01) * 0.5).norm() > tolerance ||
+					(pCenter - (p00 + p11) * 0.5).norm() > tolerance;
+			}
+
+		if (!needsRefinement)
+			break;
+
+		segmentsU = refinedU;
+		segmentsV = refinedV;
+		samples.swap(refinedSamples);
+	}
+
+	const int firstVertex = m.nb_vertices();
+	for (const Point3& point : samples)
+		m.add_vertex(point);
+
+	const int stride = segmentsU + 1;
+	for (int v = 0; v < segmentsV; ++v)
+		for (int u = 0; u < segmentsU; ++u)
+		{
+			const int uEnd = n.is_closed_u() && u == segmentsU - 1 ? 0 : u + 1;
+			const int vEnd = n.is_closed_v() && v == segmentsV - 1 ? 0 : v + 1;
+			const int i00 = firstVertex + u + stride * v;
+			const int i10 = firstVertex + uEnd + stride * v;
+			const int i11 = firstVertex + uEnd + stride * vEnd;
+			const int i01 = firstVertex + u + stride * vEnd;
+			m.add_triangle(i00, i10, i11);
+			m.add_triangle(i00, i11, i01);
 		}
 }
 ///////////////////////////////////////////////////////////////////////////
