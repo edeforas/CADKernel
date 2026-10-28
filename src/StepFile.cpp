@@ -502,14 +502,9 @@ namespace
 		return (a - b).norm_square() <= 1.e-24;
 	}
 
-	std::string solid_topology_point_key(const Point3& point)
+	bool same_solid_topology_point(const Point3& a, const Point3& b)
 	{
-		std::ostringstream key;
-		key << std::setprecision(12) << std::scientific
-			<< sanitize_double(point.x()) << ","
-			<< sanitize_double(point.y()) << ","
-			<< sanitize_double(point.z());
-		return key.str();
+		return (a - b).norm_square() <= 1.e-16;
 	}
 }
 
@@ -563,35 +558,46 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 	if (vertexCount < 3)
 		return -1;
 
-	std::vector<std::string> pointKeys(vertexCount);
+	std::vector<int> pointIds(vertexCount, -1);
 	std::vector<int> vertexPointIds(vertexCount, -1);
 	std::vector<int> vertexIds(vertexCount, -1);
 	for (int i = 0; i < vertexCount; ++i)
 	{
-		pointKeys[i] = solid_topology_point_key(loop[i]);
-		auto pointIt = _writingSolid ? _solidPointIds.find(pointKeys[i]) : _solidPointIds.end();
-		auto vertexIt = _writingSolid ? _solidVertexIds.find(pointKeys[i]) : _solidVertexIds.end();
-		if (_writingSolid && pointIt != _solidPointIds.end() && vertexIt != _solidVertexIds.end())
+		size_t pointIndex = _solidTopologyPoints.size();
+		if (_writingSolid)
 		{
-			vertexPointIds[i] = pointIt->second;
-			vertexIds[i] = vertexIt->second;
+			for (size_t j = 0; j < _solidTopologyPoints.size(); ++j)
+			{
+				if (same_solid_topology_point(loop[i], _solidTopologyPoints[j]))
+				{
+					pointIndex = j;
+					break;
+				}
+			}
+		}
+
+		if (pointIndex < _solidTopologyPoints.size())
+		{
+			pointIds[i] = _solidPointIds[pointIndex];
+			vertexPointIds[i] = _solidPointIds[pointIndex];
+			vertexIds[i] = _solidVertexIds[pointIndex];
 			continue;
 		}
 
-		const int pId = next_id();
-		vertexPointIds[i] = pId;
-		_f << "#" << pId << "=CARTESIAN_POINT('',("
+		pointIds[i] = next_id();
+		vertexPointIds[i] = pointIds[i];
+		_f << "#" << pointIds[i] << "=CARTESIAN_POINT('',("
 			<< sanitize_double(loop[i].x()) << ","
 			<< sanitize_double(loop[i].y()) << ","
 			<< sanitize_double(loop[i].z()) << "));" << endl;
 
-		const int vId = next_id();
-		vertexIds[i] = vId;
-		_f << "#" << vId << "=VERTEX_POINT('',#" << pId << ");" << endl;
+		vertexIds[i] = next_id();
+		_f << "#" << vertexIds[i] << "=VERTEX_POINT('',#" << pointIds[i] << ");" << endl;
 		if (_writingSolid)
 		{
-			_solidPointIds[pointKeys[i]] = pId;
-			_solidVertexIds[pointKeys[i]] = vId;
+			_solidTopologyPoints.push_back(loop[i]);
+			_solidPointIds.push_back(pointIds[i]);
+			_solidVertexIds.push_back(vertexIds[i]);
 		}
 	}
 
@@ -601,10 +607,10 @@ int StepWriter::write_trim_loop_bound(const std::vector<Point3>& rawLoop, bool b
 	for (int i = 0; i < vertexCount; ++i)
 	{
 		const int iNext = (i + 1) % vertexCount;
-		const bool forward = !_writingSolid || pointKeys[i] < pointKeys[iNext];
+		const bool forward = !_writingSolid || vertexIds[i] < vertexIds[iNext];
 		const int start = forward ? i : iNext;
 		const int end = forward ? iNext : i;
-		const std::string edgeKey = pointKeys[start] + "|" + pointKeys[end];
+		const std::pair<int, int> edgeKey(vertexIds[start], vertexIds[end]);
 		auto edgeIt = _writingSolid ? _solidEdgeCurveIds.find(edgeKey) : _solidEdgeCurveIds.end();
 		int edgeCurveId = -1;
 		if (_writingSolid && edgeIt != _solidEdgeCurveIds.end())
@@ -689,6 +695,7 @@ void StepWriter::write(const NurbsSolid& n)
 	_solidPointIds.clear();
 	_solidVertexIds.clear();
 	_solidEdgeCurveIds.clear();
+	_solidTopologyPoints.clear();
 	_writingSolid = true;
 
 	std::vector<int> faceIds;
@@ -704,6 +711,7 @@ void StepWriter::write(const NurbsSolid& n)
 	_solidPointIds.clear();
 	_solidVertexIds.clear();
 	_solidEdgeCurveIds.clear();
+	_solidTopologyPoints.clear();
 
 	if (faceIds.empty())
 		return;

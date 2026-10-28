@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <cmath>
 using namespace std;
 
 void test_bool(bool b, const string& sMessage = "")
@@ -76,6 +77,17 @@ map<int, vector<bool>> extract_oriented_edge_senses(const string& text)
 	}
 
 	return sensesByEdge;
+}
+
+void test_closed_solid_edges(const string& content, const string& description)
+{
+	const map<int, vector<bool>> edgeSenses = extract_oriented_edge_senses(content);
+	test_bool(!edgeSenses.empty(), description + " should contain shared edges");
+	for (const auto& edge : edgeSenses)
+	{
+		test_bool(edge.second.size() == 2, description + " edges should each belong to two faces");
+		test_bool(edge.second[0] != edge.second[1], description + " adjacent faces should use shared edges in opposite directions");
+	}
 }
 
 set<int> extract_defined_ids(const string& s)
@@ -240,13 +252,9 @@ void test_step_read_solid_box()
 	test_bool(count_occurrences(content, "VERTEX_POINT") == 8, "solid box export should share its eight topological vertices");
 	test_bool(count_occurrences(content, "ORIENTED_EDGE") == source.surfaces().size() * 4, "solid box export should retain every face boundary edge use");
 	test_bool(content.find("ADVANCED_FACE('',(),") == string::npos, "solid box export should not contain faces with empty bounds");
-	const map<int, vector<bool>> edgeSenses = extract_oriented_edge_senses(content);
-	test_bool(edgeSenses.size() == 12, "solid box export should use every shared edge");
-	for (const auto& edge : edgeSenses)
-	{
-		test_bool(edge.second.size() == 2, "each solid box edge should belong to two faces");
-		test_bool(edge.second[0] != edge.second[1], "adjacent faces should use shared edges in opposite directions");
-	}
+	test_bool(count_occurrences(content, "EDGE_CURVE") == count_occurrences(content, "ORIENTED_EDGE") / 2,
+		"solid box export should use each shared edge twice");
+	test_closed_solid_edges(content, "solid box");
 
 	NurbsSolid loaded;
 	StepReader reader;
@@ -265,6 +273,43 @@ void test_step_read_solid_box()
 		test_bool((int)s.knots_u().size() == s.nb_points_u() + s.degree_u() + 1, "loaded solid face U knots size mismatch");
 		test_bool((int)s.knots_v().size() == s.nb_points_v() + s.degree_v() + 1, "loaded solid face V knots size mismatch");
 	}
+}
+
+void test_step_export_bumped_cube_closed_shell()
+{
+	NurbsSolid source;
+	NurbsFactory::create_box(10., 10., 10., source);
+
+	for (auto& surface : source.surfaces())
+	{
+		surface.degree_elevation_u();
+		surface.degree_elevation_u();
+		surface.degree_elevation_v();
+		surface.degree_elevation_v();
+
+		for (int i = 1; i < 7; ++i)
+			surface.insert_knot_u(i / 7.);
+		for (int i = 1; i < 7; ++i)
+			surface.insert_knot_v(i / 7.);
+
+		for (auto& point : surface.points())
+		{
+			const double random = std::cos(point.x() * 1372761.12 + point.y() * 175815.7128 + point.z() * 265273.76 + 97.44);
+			point += point.normalized() * random;
+		}
+	}
+
+	StepWriter writer;
+	writer.open("test_bumped_cube.step");
+	test_bool(writer.is_open(), "step writer should open bumped cube file");
+	writer.write(source);
+	writer.close();
+
+	const string content = read_file_text("test_bumped_cube.step");
+	test_bool(count_occurrences(content, "MANIFOLD_SOLID_BREP") == 1, "bumped cube should export as a manifold solid");
+	test_bool(count_occurrences(content, "EDGE_CURVE") * 2 == count_occurrences(content, "ORIENTED_EDGE"),
+		"bumped cube should share every edge between its two adjacent faces");
+	test_closed_solid_edges(content, "bumped cube");
 }
 
 void test_step_read_solid_torus()
@@ -350,6 +395,7 @@ void test_step_read_multiple_solids()
 ///////////////////////////////////////////////////////////////////////////
 int main()
 {
+	test_step_export_bumped_cube_closed_shell();
 	test_step_export_torus();
 	test_step_export_with_invalid_knots_weights();
 	test_step_read_solid_box();

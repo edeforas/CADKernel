@@ -55,9 +55,10 @@ private:
 	RepresentationKind _repKind;
 	vector<int> _repItems;
 	bool _writingSolid;
-	map<string, int> _solidPointIds;
-	map<string, int> _solidVertexIds;
-	map<string, int> _solidEdgeCurveIds;
+	vector<Point3> _solidTopologyPoints;
+	vector<int> _solidPointIds;
+	vector<int> _solidVertexIds;
+	map<pair<int, int>, int> _solidEdgeCurveIds;
 };
 
 class StepReader
