@@ -319,7 +319,7 @@ namespace
 		if (!diagnostics)
 			return;
 
-		const int iResolution = 16;
+		const int iResolution = 32;
 		std::vector<SurfaceSample> samplesA = sample_surface_grid(surfaceA, iResolution);
 		std::vector<SurfaceSample> samplesB = sample_surface_grid(surfaceB, iResolution);
 
@@ -327,6 +327,8 @@ namespace
 			return;
 
 		const double dTolSq = dTol * dTol;
+		const double dMergeTol = dTol * 0.05;
+		const double dRefineTol = dTol * 0.01;
 		std::vector<NurbsIntersectionSample> rawSamples;
 		rawSamples.reserve(samplesA.size());
 
@@ -348,27 +350,28 @@ namespace
 			if (pBestB && dBest <= dTolSq)
 			{
 				NurbsIntersectionSample inter = refine_surface_match(surfaceA, surfaceB, sampleA.u, sampleA.v, pBestB->u, pBestB->v);
-				if (near_existing_sample(rawSamples, inter.point, dTolSq))
+				if (near_existing_sample(rawSamples, inter.point, dMergeTol * dMergeTol))
 					continue;
 
 				Point3 pARefined;
 				Point3 pBRefined;
 				surfaceA.evaluate(inter.uA, inter.vA, pARefined);
 				surfaceB.evaluate(inter.uB, inter.vB, pBRefined);
-				if (pARefined.distance_square(pBRefined) > dTolSq)
+				if (pARefined.distance_square(pBRefined) > dRefineTol * dRefineTol)
 					continue;
 
 				rawSamples.push_back(inter);
 			}
 		}
 
-		const double dBreakDistSq = dTolSq * 9.;
+		const double dBreakDist = dTol * 11.;
+		const double dBreakDistSq = dBreakDist * dBreakDist;
 		std::vector<NurbsIntersectionCurve> curves = chain_intersection_samples(rawSamples, dBreakDistSq);
 
 		for (const auto& c : curves)
 		{
 			NurbsIntersectionCurve resampled = resample_curve_equal_arclength(c, dTol * 0.75, 96);
-			finalize_curve_topology_and_winding(resampled, dTol);
+			finalize_curve_topology_and_winding(resampled, dTol * 5.);
 			if (resampled.samples.size() >= 2)
 				diagnostics->curves.push_back(resampled);
 		}

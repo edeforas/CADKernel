@@ -550,6 +550,84 @@ void test_nurbs_boolean_partial_overlap_trimmed_return()
 	swDiff.close();
 }
 
+void test_nurbs_boolean_partial_overlap_sphere_difference()
+{
+	cout << endl << "test_nurbs_boolean_partial_overlap_sphere_difference" << endl;
+
+	NurbsSolid sphereA, sphereB;
+	NurbsFactory::create_sphere(10., sphereA);
+	NurbsFactory::create_sphere(10., sphereB);
+	sphereB.apply_transform(Translation(Point3(7., 0., 0.)));
+
+	NurbsBoolean nb;
+	std::vector<NurbsTrimmedSurface> difference;
+	NurbsIntersectionResult diagnostics;
+	const bool ok = nb.compute_difference(sphereA, sphereB, difference, &diagnostics);
+	test_bool(ok, "overlapping sphere difference should succeed");
+	test_bool(!difference.empty(), "overlapping sphere difference should contain surfaces");
+	test_bool(!diagnostics.curves.empty(), "overlapping sphere difference should find intersection curves");
+
+	int trimmedSurfaces = 0;
+	for (const auto& surface : difference)
+	{
+		test_bool(!surface.trim_loops().empty(), "overlapping sphere result surfaces should be trimmed");
+		trimmedSurfaces++;
+
+		Mesh mesh;
+		NurbsUtil::to_mesh(surface, mesh, 32);
+		test_bool(mesh.nb_triangles() > 0, "trimmed sphere difference surface should mesh");
+
+		double errorA = 0.;
+		double errorB = 0.;
+		for (int i = 0; i < mesh.nb_vertices(); ++i)
+		{
+			Point3 p;
+			mesh.get_vertex(i, p);
+			errorA += std::fabs((p - Point3(0., 0., 0.)).norm() - 10.);
+			errorB += std::fabs((p - Point3(7., 0., 0.)).norm() - 10.);
+		}
+		const bool isSphereA = errorA < errorB;
+
+		int checkedTriangles = 0;
+		int incorrectTriangles = 0;
+		for (int i = 0; i < mesh.nb_triangles(); ++i)
+		{
+			int i0, i1, i2;
+			mesh.get_triangle_vertices(i, i0, i1, i2);
+			Point3 p0, p1, p2;
+			mesh.get_vertex(i0, p0);
+			mesh.get_vertex(i1, p1);
+			mesh.get_vertex(i2, p2);
+			const Point3 center = (p0 + p1 + p2) / 3.;
+			const double distanceToOther = isSphereA
+				? (center - Point3(7., 0., 0.)).norm()
+				: (center - Point3(0., 0., 0.)).norm();
+
+			if (isSphereA && distanceToOther < 9.8)
+			{
+				checkedTriangles++;
+				incorrectTriangles++;
+			}
+			else if (!isSphereA && distanceToOther > 10.2)
+			{
+				checkedTriangles++;
+				incorrectTriangles++;
+			}
+			else if ((isSphereA && distanceToOther > 10.2)
+				|| (!isSphereA && distanceToOther < 9.8))
+			{
+				checkedTriangles++;
+			}
+		}
+
+		test_bool(checkedTriangles > 0, "sphere difference mesh should contain classifiable triangles");
+		test_bool(incorrectTriangles * 50 < checkedTriangles,
+			"sphere difference mesh should omit the overlap from A and keep only the cavity wall from B");
+	}
+
+	test_bool(trimmedSurfaces == 2, "overlapping sphere difference should contain both trimmed boundary surfaces");
+}
+
 int main()
 {
 	test_nurbs_boolean_two_spheres_export();
@@ -566,6 +644,7 @@ int main()
 	test_nurbs_boolean_exact_trimmed_torus_torus_nested_loop_regression();
 	test_nurbs_boolean_random_cylinders_and_step_save();
 	test_nurbs_boolean_partial_overlap_trimmed_return();
+	test_nurbs_boolean_partial_overlap_sphere_difference();
 
 	cout << "Test Finished.";
 	return 0;
