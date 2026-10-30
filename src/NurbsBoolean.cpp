@@ -922,7 +922,6 @@ namespace
 			fullDomain.push_back({ 0., 1. });
 			ts.add_outer_loop(fullDomain);
 		}
-
 		return ts;
 	}
 

@@ -587,6 +587,16 @@ void test_nurbs_boolean_partial_overlap_sphere_difference()
 			errorB += std::fabs((p - Point3(7., 0., 0.)).norm() - 10.);
 		}
 		const bool isSphereA = errorA < errorB;
+		if (!isSphereA)
+		{
+			Point3 cavityNormal;
+			Point3 originalNormal;
+			test_bool(surface.normal(0.37, 0.53, cavityNormal), "cavity wall normal should be defined");
+			test_bool(sphereB.surfaces()[0].normal(0.63, 0.53, originalNormal),
+				"source sphere normal should be defined at the corresponding parameter");
+			test_bool(cavityNormal.dot_product(originalNormal) < -0.99,
+				"sphere B cavity wall should have reversed normals");
+		}
 
 		int checkedTriangles = 0;
 		int incorrectTriangles = 0;
@@ -626,6 +636,33 @@ void test_nurbs_boolean_partial_overlap_sphere_difference()
 	}
 
 	test_bool(trimmedSurfaces == 2, "overlapping sphere difference should contain both trimmed boundary surfaces");
+
+	StepWriter writer;
+	const string stepPath = "test_nurbs_boolean_partial_overlap_sphere_difference.step";
+	writer.open(stepPath);
+	test_bool(writer.is_open(), "overlapping sphere difference STEP file should open");
+	for (const auto& surface : difference)
+		writer.write(surface);
+	writer.close();
+
+	ifstream stepFile(stepPath.c_str());
+	test_bool(stepFile.is_open(), "overlapping sphere difference STEP file should exist");
+	int advancedFaces = 0;
+	int outerBounds = 0;
+	int innerBounds = 0;
+	string line;
+	while (getline(stepFile, line))
+	{
+		if (line.find("=ADVANCED_FACE(") != string::npos)
+			advancedFaces++;
+		if (line.find("=FACE_OUTER_BOUND(") != string::npos)
+			outerBounds++;
+		if (line.find("=FACE_BOUND(") != string::npos)
+			innerBounds++;
+	}
+	test_bool(advancedFaces == 2, "sphere difference STEP should contain both trimmed faces");
+	test_bool(outerBounds == 2, "each sphere difference STEP face should have an outer bound");
+	test_bool(innerBounds == 1, "sphere difference STEP should preserve the removed-overlap trim bound");
 }
 
 int main()
