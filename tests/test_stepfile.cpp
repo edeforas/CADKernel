@@ -3,6 +3,7 @@
 #include "NurbsFactory.h"
 #include "NurbsSolid.h"
 #include "NurbsSurface.h"
+#include "NurbsTrimmedSurface.h"
 
 #include <fstream>
 #include <iostream>
@@ -217,6 +218,34 @@ void test_step_export_with_invalid_knots_weights()
 	test_step_integrity("test_invalid_surface.step");
 }
 
+void test_step_export_periodic_trimmed_surface()
+{
+	NurbsSolid cylinder;
+	NurbsFactory::create_cylinder(6., 30., cylinder);
+
+	NurbsTrimmedSurface wall(cylinder.surfaces()[1]);
+	wall.add_outer_loop({
+		{ 0., 1. / 6. },
+		{ 1., 1. / 6. },
+		{ 1., 5. / 6. },
+		{ 0., 5. / 6. }
+	});
+
+	StepWriter writer;
+	writer.open("test_periodic_trimmed_surface.step");
+	test_bool(writer.is_open(), "step writer should open periodic trimmed surface file");
+	writer.write(wall);
+	writer.close();
+
+	const string content = read_file_text("test_periodic_trimmed_surface.step");
+	const int orientedEdges = count_occurrences(content, "=ORIENTED_EDGE");
+	const int naturalBoundaryEdges = 2 * wall.nb_points_u() * 10 + 2;
+	test_bool(orientedEdges > 64, "periodic trimmed boundary should include its curved seam edges");
+	test_bool(orientedEdges < naturalBoundaryEdges,
+		"periodic trimmed boundary should not fall back to the full natural surface boundary");
+	test_step_integrity("test_periodic_trimmed_surface.step");
+}
+
 void test_step_read_torus()
 {
 	NurbsSurface loaded;
@@ -398,6 +427,7 @@ int main()
 	test_step_export_bumped_cube_closed_shell();
 	test_step_export_torus();
 	test_step_export_with_invalid_knots_weights();
+	test_step_export_periodic_trimmed_surface();
 	test_step_read_solid_box();
 	test_step_read_torus();
 	test_step_read_solid_torus();

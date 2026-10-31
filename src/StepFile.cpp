@@ -498,12 +498,23 @@ int StepWriter::write_advanced_face(const NurbsSurface& n)
 				continue;
 
 			std::vector<Point3> loop3d;
-			loop3d.reserve(sampledLoop.size());
-			for (const auto& uv : sampledLoop)
+			loop3d.reserve(sampledLoop.size() * 4);
+			for (int i = 0; i < (int)sampledLoop.size(); ++i)
 			{
-				Point3 p;
-				n.evaluate(uv.u, uv.v, p);
-				loop3d.push_back(p);
+				const NurbsUvPoint& start = sampledLoop[i];
+				const NurbsUvPoint& end = sampledLoop[(i + 1) % sampledLoop.size()];
+				const double span = std::max(std::fabs(end.u - start.u), std::fabs(end.v - start.v));
+				const int segmentCount = std::max(1, (int)std::ceil(span * 32.));
+				for (int segment = 0; segment < segmentCount; ++segment)
+				{
+					const double t = (double)segment / segmentCount;
+					Point3 p;
+					n.evaluate(
+						start.u * (1. - t) + end.u * t,
+						start.v * (1. - t) + end.v * t,
+						p);
+					loop3d.push_back(p);
+				}
 			}
 
 			const bool bHole = loop.hole || hasOuter;

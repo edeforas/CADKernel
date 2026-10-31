@@ -9,10 +9,12 @@
 #include "OBJFile.h"
 #include "NurbsUtil.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <string>
 using namespace std;
 
@@ -159,15 +161,58 @@ void test_nurbs_boolean_box_cylinder_difference()
 {
 	cout << endl << "test_nurbs_boolean_box_cylinder_difference" << endl;
 
-	NurbsSolid a, b, d;
+	NurbsSolid a, b;
 	NurbsFactory::create_box(20., 20., 20., a);
 	NurbsFactory::create_cylinder(6., 30., b);
 
 	NurbsBoolean nb;
-	bool ok = nb.compute_difference(a, b, d);
+	std::vector<NurbsTrimmedSurface> difference;
+	bool ok = nb.compute_difference(a, b, difference);
 	test_bool(ok, "compute_difference should succeed for box minus cylinder");
-	test_bool(!d.surfaces().empty(), "difference result should not be empty");
-	test_bool(d.surfaces().size() > a.surfaces().size(), "difference should add cavity shell surfaces");
+	test_bool(!difference.empty(), "difference result should not be empty");
+
+	int surfacesWithTrimLoops = 0;
+	Mesh trimmedMesh;
+	NurbsUtil::to_mesh(difference, trimmedMesh, 32);
+	Mesh untrimmedMesh;
+	for (const auto& surface : difference)
+	{
+		if (!surface.trim_loops().empty())
+			surfacesWithTrimLoops++;
+		NurbsUtil::to_mesh(static_cast<const NurbsSurface&>(surface), untrimmedMesh, 32, false);
+	}
+	test_bool(surfacesWithTrimLoops > 0, "box-cylinder difference should preserve its trim loops");
+	test_bool(difference.size() > a.surfaces().size(),
+		"difference should include the cylinder cavity surfaces");
+	test_bool(trimmedMesh.nb_triangles() < untrimmedMesh.nb_triangles(),
+		"trimmed difference mesh should omit the uncut surface regions");
+
+	bool foundTrimmedCylinderWall = false;
+	for (const auto& surface : difference)
+	{
+		if (!surface.is_closed_u() || surface.trim_loops().empty())
+			continue;
+
+		double zMin = std::numeric_limits<double>::max();
+		double zMax = std::numeric_limits<double>::lowest();
+		for (const auto& loop : surface.trim_loops())
+		{
+			for (const auto& uv : loop.get_points())
+			{
+				Point3 point;
+				surface.evaluate(uv.u, uv.v, point);
+				zMin = std::min(zMin, point.z());
+				zMax = std::max(zMax, point.z());
+			}
+		}
+
+		foundTrimmedCylinderWall = zMin >= -10.5 && zMin < -9.5
+			&& zMax <= 10.5 && zMax > 9.5;
+		if (foundTrimmedCylinderWall)
+			break;
+	}
+	test_bool(foundTrimmedCylinderWall,
+		"cylinder wall should be trimmed to the box height");
 }
 
 void test_nurbs_boolean_partial_overlap_is_reported()

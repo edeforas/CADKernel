@@ -52,8 +52,8 @@ swB.write(sphereB);
 	NurbsUtil::to_mesh(exactTrimmedDifference, resultMesh, 24);
 	Mesh sphereAMesh;
 	Mesh sphereBMesh;
-	NurbsUtil::to_mesh(sphereA, sphereAMesh, 24);
-	NurbsUtil::to_mesh(sphereB, sphereBMesh, 24);
+	NurbsUtil::to_mesh(sphereA, sphereAMesh, 0);
+	NurbsUtil::to_mesh(sphereB, sphereBMesh, 0);
 
 	OBJWriter ow;
 	ow.open("sample_nurbs_spheres_difference.obj");
