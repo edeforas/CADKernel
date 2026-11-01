@@ -84,7 +84,6 @@ void test_nurbs_fitting_surface_grid_least_squares()
 	ow.open("test_nurbs_fitting_surface_grid_least_squares.obj");
 	ow.write(m);
 
-
 	test_bool(file_exists("test_nurbs_fitting_surface_grid_least_squares.step"), "fitted surface step file should exist");
 }
 
