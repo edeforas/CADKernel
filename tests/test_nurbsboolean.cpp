@@ -166,14 +166,18 @@ void test_nurbs_boolean_box_cylinder_difference()
 	NurbsFactory::create_cylinder(6., 30., b);
 
 	NurbsBoolean nb;
+	NurbsSolid differenceSolid;
 	std::vector<NurbsTrimmedSurface> difference;
-	bool ok = nb.compute_difference(a, b, difference);
+	bool ok = nb.compute_difference(a, b, differenceSolid);
+	NurbsUtil::solid_to_trimmed_surfaces(differenceSolid, difference);
 	test_bool(ok, "compute_difference should succeed for box minus cylinder");
 	test_bool(!difference.empty(), "difference result should not be empty");
 
 	int surfacesWithTrimLoops = 0;
 	Mesh trimmedMesh;
 	NurbsUtil::to_mesh(difference, trimmedMesh, 32);
+	Mesh solidMesh;
+	NurbsUtil::to_mesh(differenceSolid, solidMesh, 32);
 	Mesh untrimmedMesh;
 	for (const auto& surface : difference)
 	{
@@ -186,6 +190,8 @@ void test_nurbs_boolean_box_cylinder_difference()
 		"difference should include the cylinder cavity surfaces");
 	test_bool(trimmedMesh.nb_triangles() < untrimmedMesh.nb_triangles(),
 		"trimmed difference mesh should omit the uncut surface regions");
+	test_bool(solidMesh.nb_triangles() == trimmedMesh.nb_triangles(),
+		"solid difference should preserve trim loops when meshed");
 
 	bool foundTrimmedCylinderWall = false;
 	for (const auto& surface : difference)
@@ -559,11 +565,13 @@ void test_nurbs_boolean_partial_overlap_trimmed_return()
 	test_bool(okInter, "compute_intersection with trimmed output should handle partial overlap");
 	test_bool(!interTrimmed.empty(), "compute_intersection trimmed result should contain surfaces");
 
-	// Test compute_difference with trimmed surface return
+	// Verify the solid result retains its trimmed surfaces.
+	NurbsSolid diffSolid;
 	std::vector<NurbsTrimmedSurface> diffTrimmed;
-	bool okDiff = nb.compute_difference(a, b, diffTrimmed);
-	test_bool(okDiff, "compute_difference with trimmed output should handle partial overlap");
-	test_bool(!diffTrimmed.empty(), "compute_difference trimmed result should contain surfaces");
+	bool okDiff = nb.compute_difference(a, b, diffSolid);
+	NurbsUtil::solid_to_trimmed_surfaces(diffSolid, diffTrimmed);
+	test_bool(okDiff, "compute_difference should handle partial overlap");
+	test_bool(!diffTrimmed.empty(), "compute_difference result should contain surfaces");
 
 	// Verify mesh generation works from trimmed results
 	Mesh mUnion, mInter, mDiff;
@@ -605,9 +613,11 @@ void test_nurbs_boolean_partial_overlap_sphere_difference()
 	sphereB.apply_transform(Translation(Point3(7., 0., 0.)));
 
 	NurbsBoolean nb;
+	NurbsSolid differenceSolid;
 	std::vector<NurbsTrimmedSurface> difference;
 	NurbsIntersectionResult diagnostics;
-	const bool ok = nb.compute_difference(sphereA, sphereB, difference, &diagnostics);
+	const bool ok = nb.compute_difference(sphereA, sphereB, differenceSolid, &diagnostics);
+	NurbsUtil::solid_to_trimmed_surfaces(differenceSolid, difference);
 	test_bool(ok, "overlapping sphere difference should succeed");
 	test_bool(!difference.empty(), "overlapping sphere difference should contain surfaces");
 	test_bool(!diagnostics.curves.empty(), "overlapping sphere difference should find intersection curves");

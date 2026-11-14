@@ -1,7 +1,7 @@
 #ifndef NurbsSolid_
 #define NurbsSolid_
 
-#include "NurbsSurface.h"
+#include "NurbsTrimmedSurface.h"
 
 #include <vector>
 class Transform;
@@ -15,8 +15,8 @@ public:
 	void clear();
 
 	void add_surface(const NurbsSurface& ns);
-	std::vector<NurbsSurface>& surfaces();
-	const std::vector<NurbsSurface>& surfaces() const;
+	std::vector<NurbsTrimmedSurface>& surfaces();
+	const std::vector<NurbsTrimmedSurface>& surfaces() const;
 	bool empty() const;
 
 	void apply_transform(const Transform& t);
@@ -24,7 +24,7 @@ public:
 	void append(const NurbsSolid& src);
 
 private:
-	std::vector<NurbsSurface> _surfaces;
+	std::vector<NurbsTrimmedSurface> _surfaces;
 };
 ///////////////////////////////////////////////////////////////////////////
 

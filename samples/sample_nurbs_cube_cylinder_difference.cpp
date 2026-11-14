@@ -1,7 +1,6 @@
 #include "NurbsBoolean.h"
 #include "NurbsFactory.h"
 #include "NurbsSolid.h"
-#include "NurbsTrimmedSurface.h"
 #include "NurbsUtil.h"
 #include "StepFile.h"
 #include "OBJFile.h"
@@ -20,18 +19,13 @@ int main()
 	// Both shapes are centered at origin by default
 
 	NurbsBoolean nb;
-	std::vector<NurbsTrimmedSurface> difference;
-	if (!nb.compute_difference(box, cylinder, difference) || difference.empty())
-	{
-		cout << "Nurbs boolean difference failed, exiting" << endl;
-		return 1;
-	}
-
+	NurbsSolid difference;
+	nb.compute_difference(box, cylinder, difference);
+	
 	// Save resulting solid to STEP
 	StepWriter sw;
-	sw.open("sample_cube_cut_cylinder.step");
-	for (const auto& surface : difference)
-		sw.write(surface);
+	sw.open("sample_nurbs_cube_cylinder_difference.step");
+	sw.write(difference);
 	sw.close();
 
 	// Convert result to mesh and save to OBJ
@@ -39,10 +33,10 @@ int main()
 	NurbsUtil::to_mesh(difference, resultMesh, 32);
 
 	OBJWriter ow;
-	ow.open("sample_cube_cut_cylinder.obj");
+	ow.open("sample_nurbs_cube_cylinder_difference.obj");
 	ow.write(resultMesh);
 	ow.close();
 
-	cout << "Wrote sample_cube_cut_cylinder.step and sample_cube_cut_cylinder.obj" << endl;
+	cout << "Wrote sample_nurbs_cube_cylinder_difference.step and sample_nurbs_cube_cylinder_difference.obj" << endl;
 	return 0;
 }

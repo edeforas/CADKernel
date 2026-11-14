@@ -74,28 +74,28 @@ void test_nurbsruled_deg2()
 {
 	cout << endl << "test_nurbsruled_deg2" << endl;
 
-	// test handcrafted ruled surface
-	NurbsSurface n;
-	int degreeU = 2;
-	vector<Point3> points = {
-		Point3(0.,0.,0.),Point3(1.,1.,0.),Point3(2.,0.,0.),
-		Point3(0.,1.,-1.),Point3(1.,0.,-1.),Point3(2.,1.,-1.)
-	};
+	//create profile curve
+	NurbsCurve nc1, nc2;
+	NurbsFactory::create_circle(1., nc1);
+	NurbsFactory::create_circle(1., nc2);
 
-	n.set_degree(1, 1);
-	n.set_points(points, 3, 2);
-	n.set_uniform_u();
-	n.set_uniform_v();
-	n.set_equals_weights();
+	// translate nc2
+	Translation t(Point3(0, 0, 1));
+	t.apply_all(nc2.points());
+
+	NurbsSurface n;
+
+	// ruled
+	NurbsRuled ne;
+	ne.create_ruled(nc1, nc2, n);
 
 	Mesh m;
 	NurbsUtil::to_mesh(n, m, 10);
 	OBJFile::save("test_nurbsruled_deg2.obj", m);
 
 	StepWriter sw;
-	sw.open("test_nurbsruled_deg_etienne.step");
+	sw.open("test_nurbsruled_deg2.step");
 	sw.write(n);
-
 }
 ///////////////////////////////////////////////////////////////////////////
 void test_nurbsruled_cylinder()

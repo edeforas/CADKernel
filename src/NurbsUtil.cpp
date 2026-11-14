@@ -558,8 +558,7 @@ void NurbsUtil::solid_to_trimmed_surfaces(const NurbsSolid& src, std::vector<Nur
 
 	for (const auto& s : src.surfaces())
 	{
-		NurbsTrimmedSurface ts(s);
-		dst.push_back(ts);
+		dst.push_back(s);
 	}
 }
 

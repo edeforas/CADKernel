@@ -17,19 +17,23 @@ void NurbsSolid::clear()
 	_surfaces.clear();
 }
 
-std::vector<NurbsSurface>& NurbsSolid::surfaces()
+std::vector<NurbsTrimmedSurface>& NurbsSolid::surfaces()
 {
 	return _surfaces;
 }
 
-const std::vector<NurbsSurface>& NurbsSolid::surfaces() const
+const std::vector<NurbsTrimmedSurface>& NurbsSolid::surfaces() const
 {
 	return _surfaces;
 }
 
 void NurbsSolid::add_surface(const NurbsSurface& ns)
 {
-	_surfaces.push_back(ns);
+	const NurbsTrimmedSurface* trimmedSurface = ns.trimming();
+	if (trimmedSurface)
+		_surfaces.push_back(*trimmedSurface);
+	else
+		_surfaces.emplace_back(ns);
 }
 
 

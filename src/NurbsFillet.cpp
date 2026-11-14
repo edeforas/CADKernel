@@ -333,7 +333,7 @@ bool NurbsFillet::create_chamfer_on_solid(const NurbsSolid& solid, int iSurfaceA
 {
 	out.clear();
 
-	const std::vector<NurbsSurface>& surfaces = solid.surfaces();
+	const auto& surfaces = solid.surfaces();
 	if (iSurfaceA < 0 || iSurfaceB < 0)
 		return false;
 	if (iSurfaceA >= (int)surfaces.size() || iSurfaceB >= (int)surfaces.size())
@@ -346,7 +346,7 @@ bool NurbsFillet::create_fillet_on_solid(const NurbsSolid& solid, int iSurfaceA,
 {
 	out.clear();
 
-	const std::vector<NurbsSurface>& surfaces = solid.surfaces();
+	const auto& surfaces = solid.surfaces();
 	if (iSurfaceA < 0 || iSurfaceB < 0)
 		return false;
 	if (iSurfaceA >= (int)surfaces.size() || iSurfaceB >= (int)surfaces.size())
@@ -359,7 +359,7 @@ bool NurbsFillet::create_chamfer_on_solid_auto(const NurbsSolid& solid, int iSur
 {
 	out.clear();
 
-	const std::vector<NurbsSurface>& surfaces = solid.surfaces();
+	const auto& surfaces = solid.surfaces();
 	if (iSurfaceA < 0 || iSurfaceB < 0)
 		return false;
 	if (iSurfaceA >= (int)surfaces.size() || iSurfaceB >= (int)surfaces.size())
@@ -377,7 +377,7 @@ bool NurbsFillet::create_fillet_on_solid_auto(const NurbsSolid& solid, int iSurf
 {
 	out.clear();
 
-	const std::vector<NurbsSurface>& surfaces = solid.surfaces();
+	const auto& surfaces = solid.surfaces();
 	if (iSurfaceA < 0 || iSurfaceB < 0)
 		return false;
 	if (iSurfaceA >= (int)surfaces.size() || iSurfaceB >= (int)surfaces.size())
